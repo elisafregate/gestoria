@@ -1,0 +1,2196 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GestorIA — Análise de Campanhas com IA</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #0d0d14;
+    --surface: #13131e;
+    --surface2: #1a1a28;
+    --border: #2a2a40;
+    --accent: #7c5cfc;
+    --accent2: #a78bfa;
+    --accent3: #38bdf8;
+    --text: #e8e8f0;
+    --text2: #9999bb;
+    --success: #34d399;
+    --danger: #f87171;
+    --warn: #fbbf24;
+    --radius: 14px;
+    --shadow: 0 8px 32px rgba(124,92,252,.15);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; }
+
+  /* ─── SCROLLBAR ─── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--surface); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* ─── AUTH ─── */
+  #auth-screen {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh;
+    background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(124,92,252,.25) 0%, transparent 70%);
+  }
+  .auth-box {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 20px; padding: 40px; width: 100%; max-width: 420px;
+    box-shadow: var(--shadow);
+  }
+  .auth-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 28px; justify-content: center; }
+  .auth-logo svg { width: 42px; height: 42px; }
+  .auth-logo span { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; letter-spacing: -1px; }
+  .auth-logo span em { color: var(--accent); font-style: normal; }
+  .auth-tabs { display: flex; gap: 4px; background: var(--surface2); border-radius: 10px; padding: 4px; margin-bottom: 24px; }
+  .auth-tab { flex: 1; padding: 8px; text-align: center; border-radius: 7px; cursor: pointer; font-size: 14px; font-weight: 500; color: var(--text2); transition: all .2s; border: none; background: none; }
+  .auth-tab.active { background: var(--accent); color: #fff; }
+  .auth-panel { display: none; }
+  .auth-panel.active { display: block; }
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 13px; color: var(--text2); margin-bottom: 6px; font-weight: 500; }
+  .form-group input, .form-group select {
+    width: 100%; padding: 12px 14px; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 10px;
+    color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px;
+    outline: none; transition: border-color .2s;
+  }
+  .form-group input:focus, .form-group select:focus { border-color: var(--accent); }
+  .btn-primary {
+    width: 100%; padding: 13px; background: var(--accent);
+    color: #fff; border: none; border-radius: 10px; font-size: 15px;
+    font-weight: 600; cursor: pointer; transition: opacity .2s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .btn-primary:hover { opacity: .88; }
+  .auth-msg { font-size: 13px; color: var(--danger); margin-top: 10px; text-align: center; }
+
+  /* ─── APP SHELL ─── */
+  #app { display: none; flex-direction: column; min-height: 100vh; }
+  #app.visible { display: flex; }
+
+  /* ─── TOPBAR ─── */
+  .topbar {
+    display: flex; align-items: center; gap: 16px;
+    padding: 0 24px; height: 60px;
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .topbar-logo { display: flex; align-items: center; gap: 8px; font-family: 'Syne', sans-serif; font-weight: 800; font-size: 18px; letter-spacing: -.5px; }
+  .topbar-logo svg { width: 28px; height: 28px; }
+  .topbar-logo em { color: var(--accent); font-style: normal; }
+  .topbar-nav { display: flex; gap: 4px; flex: 1; overflow-x: auto; }
+  .nav-btn {
+    padding: 7px 14px; border: none; background: none;
+    color: var(--text2); border-radius: 8px; font-size: 13px; font-weight: 500;
+    cursor: pointer; white-space: nowrap; transition: all .2s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .nav-btn:hover { background: var(--surface2); color: var(--text); }
+  .nav-btn.active { background: var(--accent); color: #fff; }
+  .topbar-user { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+  .user-badge {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 20px; padding: 4px 12px; font-size: 13px;
+    color: var(--text2);
+  }
+  .btn-logout {
+    padding: 6px 14px; background: none; border: 1px solid var(--border);
+    color: var(--text2); border-radius: 8px; cursor: pointer; font-size: 13px;
+    transition: all .2s; font-family: 'DM Sans', sans-serif;
+  }
+  .btn-logout:hover { border-color: var(--danger); color: var(--danger); }
+
+  /* ─── MAIN ─── */
+  .main { flex: 1; padding: 28px 24px; max-width: 960px; margin: 0 auto; width: 100%; }
+
+  /* ─── SECTIONS ─── */
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* ─── CARDS ─── */
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 24px; margin-bottom: 20px;
+  }
+  .card-title { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .card-title .badge { font-size: 11px; background: var(--accent); color: #fff; padding: 2px 8px; border-radius: 20px; font-family: 'DM Sans', sans-serif; font-weight: 600; }
+
+  /* ─── DASHBOARD ─── */
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 20px; }
+  .stat-card {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 18px; text-align: center;
+  }
+  .stat-value { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; color: var(--accent2); }
+  .stat-label { font-size: 12px; color: var(--text2); margin-top: 4px; }
+  .welcome-hero {
+    background: linear-gradient(135deg, rgba(124,92,252,.18) 0%, rgba(56,189,248,.08) 100%);
+    border: 1px solid rgba(124,92,252,.3); border-radius: var(--radius);
+    padding: 28px; margin-bottom: 20px;
+    display: flex; align-items: center; gap: 20px;
+  }
+  .welcome-hero .icon { font-size: 48px; }
+  .welcome-hero h2 { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+  .welcome-hero p { color: var(--text2); font-size: 14px; line-height: 1.6; }
+  .quick-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+  .quick-action {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 18px; cursor: pointer; transition: all .2s;
+    text-align: center;
+  }
+  .quick-action:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: var(--shadow); }
+  .quick-action .qa-icon { font-size: 28px; margin-bottom: 8px; }
+  .quick-action .qa-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+  .quick-action .qa-desc { font-size: 12px; color: var(--text2); }
+
+  /* ─── ANÁLISE ─── */
+  .steps-indicator { display: flex; gap: 0; margin-bottom: 24px; }
+  .step-dot {
+    flex: 1; height: 4px; background: var(--border);
+    transition: background .3s; position: relative;
+  }
+  .step-dot.done { background: var(--accent); }
+  .step-dot.active { background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+  .step-label { font-size: 12px; color: var(--text2); margin-bottom: 16px; }
+  .step-label span { color: var(--accent); font-weight: 600; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media(max-width:600px) { .field-row { grid-template-columns: 1fr; } }
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 13px; color: var(--text2); margin-bottom: 6px; font-weight: 500; }
+  .field input, .field select, .field textarea {
+    width: 100%; padding: 11px 14px; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 10px;
+    color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px;
+    outline: none; transition: border-color .2s; resize: vertical;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); }
+  .field textarea { min-height: 80px; }
+  .btn-row { display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px; }
+  .btn-sec {
+    padding: 10px 20px; background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 500;
+    transition: all .2s; font-family: 'DM Sans', sans-serif;
+  }
+  .btn-sec:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-accent {
+    padding: 10px 22px; background: var(--accent); border: none;
+    color: #fff; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 600;
+    transition: opacity .2s; font-family: 'DM Sans', sans-serif;
+  }
+  .btn-accent:hover { opacity: .88; }
+  .btn-accent:disabled { opacity: .5; cursor: not-allowed; }
+
+  /* ─── AI RESULT ─── */
+  .ai-result {
+    background: linear-gradient(135deg, rgba(124,92,252,.08), rgba(56,189,248,.04));
+    border: 1px solid rgba(124,92,252,.25); border-radius: 12px; padding: 20px;
+    font-size: 14px; line-height: 1.8; white-space: pre-wrap;
+    max-height: 480px; overflow-y: auto;
+  }
+  .loading-dots { display: inline-flex; gap: 5px; align-items: center; }
+  .loading-dots span {
+    width: 7px; height: 7px; background: var(--accent); border-radius: 50%;
+    animation: bounce .9s infinite;
+  }
+  .loading-dots span:nth-child(2) { animation-delay: .2s; }
+  .loading-dots span:nth-child(3) { animation-delay: .4s; }
+  @keyframes bounce { 0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-8px)} }
+
+  /* ─── CRIATIVOS ─── */
+  .mode-toggle { display: flex; gap: 4px; background: var(--surface2); border-radius: 10px; padding: 4px; margin-bottom: 20px; }
+  .mode-btn { flex: 1; padding: 8px; text-align: center; border-radius: 7px; cursor: pointer; font-size: 13px; font-weight: 500; color: var(--text2); transition: all .2s; border: none; background: none; font-family: 'DM Sans', sans-serif; }
+  .mode-btn.active { background: var(--accent); color: #fff; }
+  .upload-area {
+    border: 2px dashed var(--border); border-radius: 12px;
+    padding: 32px; text-align: center; cursor: pointer; transition: all .2s;
+  }
+  .upload-area:hover { border-color: var(--accent); background: rgba(124,92,252,.04); }
+  .upload-area .upload-icon { font-size: 36px; margin-bottom: 10px; }
+  .upload-area p { font-size: 14px; color: var(--text2); }
+  .upload-area input { display: none; }
+  .preview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; margin-top: 14px; }
+  .preview-thumb { position: relative; border-radius: 8px; overflow: hidden; aspect-ratio: 1; background: var(--surface2); }
+  .preview-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .preview-thumb .rm { position: absolute; top: 3px; right: 3px; width: 20px; height: 20px; background: rgba(0,0,0,.7); border-radius: 50%; border: none; color: #fff; cursor: pointer; font-size: 10px; display: flex; align-items: center; justify-content: center; }
+
+  /* ─── CHARS ─── */
+  .platform-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 18px; }
+  .plat-tab {
+    padding: 7px 14px; border: 1px solid var(--border); border-radius: 8px;
+    cursor: pointer; font-size: 13px; color: var(--text2); transition: all .2s;
+    background: none; font-family: 'DM Sans', sans-serif;
+  }
+  .plat-tab.active { border-color: var(--accent); color: var(--accent); background: rgba(124,92,252,.08); }
+  .char-field { margin-bottom: 16px; }
+  .char-field label { display: flex; justify-content: space-between; font-size: 13px; color: var(--text2); margin-bottom: 6px; }
+  .char-field label .count { font-weight: 600; }
+  .char-field label .count.ok { color: var(--success); }
+  .char-field label .count.warn { color: var(--warn); }
+  .char-field label .count.over { color: var(--danger); }
+  .char-field input, .char-field textarea {
+    width: 100%; padding: 10px 12px; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 8px; color: var(--text);
+    font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none;
+    transition: border-color .2s; resize: vertical;
+  }
+  .char-field input:focus, .char-field textarea:focus { border-color: var(--accent); }
+  .char-bar { height: 3px; border-radius: 2px; background: var(--border); margin-top: 4px; overflow: hidden; }
+  .char-bar-fill { height: 100%; border-radius: 2px; transition: width .2s, background .2s; background: var(--success); }
+
+  /* ─── KEYWORDS ─── */
+  .kw-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media(max-width:600px) { .kw-grid { grid-template-columns: 1fr; } }
+  .kw-col h4 { font-size: 13px; font-weight: 600; margin-bottom: 10px; }
+  .kw-col.pos h4 { color: var(--success); }
+  .kw-col.neg h4 { color: var(--danger); }
+  .kw-input-row { display: flex; gap: 6px; margin-bottom: 10px; }
+  .kw-input-row input { flex: 1; padding: 9px 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13px; outline: none; }
+  .kw-input-row input:focus { border-color: var(--accent); }
+  .kw-add { padding: 9px 14px; background: var(--accent); border: none; color: #fff; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; }
+  .kw-tags { display: flex; flex-wrap: wrap; gap: 6px; min-height: 36px; }
+  .kw-tag {
+    padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500;
+    display: flex; align-items: center; gap: 5px; cursor: pointer;
+  }
+  .kw-tag.pos { background: rgba(52,211,153,.15); color: var(--success); border: 1px solid rgba(52,211,153,.3); }
+  .kw-tag.neg { background: rgba(248,113,113,.12); color: var(--danger); border: 1px solid rgba(248,113,113,.3); }
+  .kw-tag span { font-size: 10px; opacity: .7; }
+
+  /* ─── CHAT ─── */
+  .chat-box {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 12px; height: 380px; overflow-y: auto; padding: 16px;
+    margin-bottom: 14px; display: flex; flex-direction: column; gap: 12px;
+  }
+  .chat-msg { max-width: 82%; display: flex; flex-direction: column; gap: 4px; }
+  .chat-msg.user { align-self: flex-end; }
+  .chat-msg.ai { align-self: flex-start; }
+  .chat-bubble {
+    padding: 11px 15px; border-radius: 14px; font-size: 14px; line-height: 1.6;
+    white-space: pre-wrap;
+  }
+  .chat-msg.user .chat-bubble { background: var(--accent); color: #fff; border-bottom-right-radius: 4px; }
+  .chat-msg.ai .chat-bubble { background: var(--surface); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+  .chat-input-row { display: flex; gap: 8px; }
+  .chat-input-row input {
+    flex: 1; padding: 12px 14px; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 10px; color: var(--text);
+    font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none;
+  }
+  .chat-input-row input:focus { border-color: var(--accent); }
+  .btn-send {
+    padding: 12px 20px; background: var(--accent); border: none; color: #fff;
+    border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  /* ─── REPORT ─── */
+  .report-preview {
+    background: #fff; color: #1a1a2e; border-radius: 12px; padding: 32px;
+    font-family: 'DM Sans', sans-serif; font-size: 14px; line-height: 1.7;
+    white-space: pre-wrap; max-height: 500px; overflow-y: auto;
+  }
+
+  /* ─── VIABILIDADE ─── */
+  .viab-meter { margin-bottom: 16px; }
+  .viab-meter label { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; }
+  .viab-bar { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .viab-bar-fill { height: 100%; border-radius: 4px; transition: width .5s; }
+
+  /* ─── TOASTS ─── */
+  #toast-container { position: fixed; top: 70px; right: 20px; z-index: 999; display: flex; flex-direction: column; gap: 8px; }
+  .toast {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 18px; font-size: 13px;
+    display: flex; align-items: center; gap: 8px; box-shadow: var(--shadow);
+    animation: slideIn .3s ease; max-width: 300px;
+  }
+  .toast.success { border-color: var(--success); }
+  .toast.error { border-color: var(--danger); }
+  @keyframes slideIn { from{transform:translateX(40px);opacity:0} to{transform:translateX(0);opacity:1} }
+
+  /* ─── MISC ─── */
+  .section-header { margin-bottom: 20px; }
+  .section-header h2 { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+  .section-header p { font-size: 14px; color: var(--text2); }
+  .tag-pill {
+    display: inline-block; padding: 3px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 600; background: rgba(124,92,252,.15);
+    color: var(--accent2); border: 1px solid rgba(124,92,252,.25);
+  }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+  .copy-btn {
+    padding: 7px 14px; background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text2); border-radius: 8px; cursor: pointer; font-size: 12px;
+    font-family: 'DM Sans', sans-serif; transition: all .2s;
+  }
+  .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .select-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    padding: 7px 14px; border: 1px solid var(--border); border-radius: 20px;
+    cursor: pointer; font-size: 13px; color: var(--text2); transition: all .2s;
+    background: none;
+  }
+  .chip.sel { border-color: var(--accent); color: var(--accent); background: rgba(124,92,252,.1); }
+
+  /* ─── CSV IMPORT ─── */
+  .csv-drop-zone {
+    border: 2px dashed var(--border); border-radius: 14px;
+    padding: 48px 24px; text-align: center; cursor: pointer;
+    transition: all .25s; background: var(--surface2); position: relative;
+  }
+  .csv-drop-zone:hover, .csv-drop-zone.drag-over { border-color: var(--accent); background: rgba(124,92,252,.07); }
+  .csv-drop-zone input[type=file] { display: none; }
+  .csv-drop-icon { font-size: 48px; margin-bottom: 14px; }
+  .csv-drop-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+  .csv-drop-sub { font-size: 13px; color: var(--text2); line-height: 1.6; }
+  .csv-source-badges { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
+  .csv-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 1px solid var(--border); color: var(--text2); background: var(--surface); }
+  .csv-badge.meta { border-color: #1877f2; color: #1877f2; }
+  .csv-badge.google { border-color: #ea4335; color: #ea4335; }
+  .csv-badge.tiktok { border-color: #ff0050; color: #ff0050; }
+  .csv-table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); margin-top: 16px; }
+  .csv-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .csv-table thead { background: var(--surface2); }
+  .csv-table th { padding: 10px 14px; text-align: left; font-weight: 600; color: var(--text2); border-bottom: 1px solid var(--border); white-space: nowrap; }
+  .csv-table td { padding: 9px 14px; border-bottom: 1px solid rgba(42,42,64,.5); white-space: nowrap; }
+  .csv-table tr:last-child td { border-bottom: none; }
+  .csv-table tr:hover td { background: rgba(124,92,252,.04); }
+  .metric-good { color: var(--success); font-weight: 600; }
+  .metric-warn { color: var(--warn); font-weight: 600; }
+  .metric-bad  { color: var(--danger); font-weight: 600; }
+  .import-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap: 12px; margin-top: 20px; }
+  .import-action-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 18px; cursor: pointer; transition: all .2s; }
+  .import-action-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: var(--shadow); }
+  .import-action-card .ia-icon { font-size: 26px; margin-bottom: 8px; }
+  .import-action-card .ia-title { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+  .import-action-card .ia-desc { font-size: 12px; color: var(--text2); }
+  .csv-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px,1fr)); gap: 10px; margin: 16px 0; }
+  .csv-sum-item { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 12px; text-align: center; }
+  .csv-sum-val { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; color: var(--accent2); }
+  .csv-sum-lbl { font-size: 11px; color: var(--text2); margin-top: 2px; }
+  .progress-bar-wrap { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-top: 12px; }
+  .progress-bar-fill { height: 100%; background: linear-gradient(90deg,var(--accent),var(--accent2)); border-radius: 3px; transition: width .4s; }
+</style>
+</head>
+<body>
+
+<!-- ─── AUTH ─── -->
+<div id="auth-screen">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="4" y="24" width="6" height="12" rx="2" fill="#7c5cfc"/>
+        <rect x="12" y="16" width="6" height="20" rx="2" fill="#a78bfa"/>
+        <rect x="20" y="8" width="6" height="28" rx="2" fill="#7c5cfc"/>
+        <rect x="28" y="12" width="6" height="24" rx="2" fill="#38bdf8"/>
+        <circle cx="7" cy="21" r="3" fill="#a78bfa"/>
+        <circle cx="15" cy="13" r="3" fill="#7c5cfc"/>
+        <circle cx="23" cy="5" r="3" fill="#a78bfa"/>
+        <circle cx="31" cy="9" r="3" fill="#38bdf8"/>
+      </svg>
+      <span>Gestor<em>IA</em></span>
+    </div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchAuthTab('login')">Entrar</button>
+      <button class="auth-tab" onclick="switchAuthTab('register')">Cadastrar</button>
+    </div>
+    <!-- Login -->
+    <div id="panel-login" class="auth-panel active">
+      <div class="form-group">
+        <label>E-mail</label>
+        <input type="email" id="login-email" placeholder="seu@email.com" value="demo@gestoria.com" />
+      </div>
+      <div class="form-group">
+        <label>Senha</label>
+        <input type="password" id="login-pass" placeholder="••••••••" value="demo123" />
+      </div>
+      <div class="form-group">
+        <label>Nível de experiência</label>
+        <select id="login-level">
+          <option value="iniciante">🌱 Iniciante</option>
+          <option value="intermediario" selected>⚡ Intermediário</option>
+          <option value="avancado">🚀 Avançado</option>
+        </select>
+      </div>
+      <button class="btn-primary" onclick="doLogin()">Entrar</button>
+      <div class="auth-msg" id="login-msg"></div>
+    </div>
+    <!-- Register -->
+    <div id="panel-register" class="auth-panel">
+      <div class="form-group">
+        <label>Nome</label>
+        <input type="text" id="reg-name" placeholder="Seu nome" />
+      </div>
+      <div class="form-group">
+        <label>E-mail</label>
+        <input type="email" id="reg-email" placeholder="seu@email.com" />
+      </div>
+      <div class="form-group">
+        <label>Senha</label>
+        <input type="password" id="reg-pass" placeholder="min. 6 caracteres" />
+      </div>
+      <div class="form-group">
+        <label>Segmento</label>
+        <select id="reg-seg">
+          <option value="afiliado">Afiliado</option>
+          <option value="gestor">Gestor de Tráfego</option>
+          <option value="ecommerce">E-commerce</option>
+          <option value="produtor">Produtor Digital</option>
+          <option value="leads">Geração de Leads</option>
+          <option value="dropshipping">Dropshipping</option>
+        </select>
+      </div>
+      <button class="btn-primary" onclick="doRegister()">Criar conta</button>
+      <div class="auth-msg" id="reg-msg"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── APP ─── -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-logo">
+      <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="4" y="24" width="6" height="12" rx="2" fill="#7c5cfc"/>
+        <rect x="12" y="16" width="6" height="20" rx="2" fill="#a78bfa"/>
+        <rect x="20" y="8" width="6" height="28" rx="2" fill="#7c5cfc"/>
+        <rect x="28" y="12" width="6" height="24" rx="2" fill="#38bdf8"/>
+      </svg>
+      <span>Gestor<em style="color:var(--accent);font-style:normal">IA</em></span>
+    </div>
+    <nav class="topbar-nav">
+      <button class="nav-btn active" onclick="showSection('dashboard')">Dashboard</button>
+      <button class="nav-btn" onclick="showSection('importar')">📂 Importar CSV</button>
+      <button class="nav-btn" onclick="showSection('analise')">Análise</button>
+      <button class="nav-btn" onclick="showSection('criativos')">Criativos</button>
+      <button class="nav-btn" onclick="showSection('chars')">Contagem</button>
+      <button class="nav-btn" onclick="showSection('keywords')">Palavras-chave</button>
+      <button class="nav-btn" onclick="showSection('viabilidade')">Viabilidade</button>
+      <button class="nav-btn" onclick="showSection('relatorio')">Relatório</button>
+      <button class="nav-btn" onclick="showSection('consultoria')">Consultoria IA</button>
+    </nav>
+    <div class="topbar-user">
+      <span class="user-badge" id="user-badge">—</span>
+      <button class="btn-logout" onclick="doLogout()">Sair</button>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <!-- ─── DASHBOARD ─── -->
+    <div id="sec-dashboard" class="section active">
+      <div class="welcome-hero">
+        <div class="icon">📊</div>
+        <div>
+          <h2 id="welcome-name">Olá!</h2>
+          <p>Bem-vindo ao GestorIA. Analise suas campanhas, gere criativos e obtenha insights com IA.</p>
+        </div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-value" id="stat-analyses">0</div><div class="stat-label">Análises feitas</div></div>
+        <div class="stat-card"><div class="stat-value" id="stat-criativos">0</div><div class="stat-label">Criativos gerados</div></div>
+        <div class="stat-card"><div class="stat-value" id="stat-kw">0</div><div class="stat-label">Palavras-chave</div></div>
+        <div class="stat-card"><div class="stat-value" id="stat-reports">0</div><div class="stat-label">Relatórios</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">⚡ Acesso rápido</div>
+        <div class="quick-actions">
+          <div class="quick-action" onclick="showSection('analise')">
+            <div class="qa-icon">🔍</div>
+            <div class="qa-title">Nova Análise</div>
+            <div class="qa-desc">Analise sua campanha em 5 passos</div>
+          </div>
+          <div class="quick-action" onclick="showSection('criativos')">
+            <div class="qa-icon">✍️</div>
+            <div class="qa-title">Gerar Criativo</div>
+            <div class="qa-desc">Crie copies e anúncios com IA</div>
+          </div>
+          <div class="quick-action" onclick="showSection('consultoria')">
+            <div class="qa-icon">🤖</div>
+            <div class="qa-title">Consultoria IA</div>
+            <div class="qa-desc">Tire dúvidas em tempo real</div>
+          </div>
+          <div class="quick-action" onclick="showSection('relatorio')">
+            <div class="qa-icon">📋</div>
+            <div class="qa-title">Relatório Cliente</div>
+            <div class="qa-desc">Gere relatório profissional</div>
+          </div>
+          <div class="quick-action" onclick="showSection('importar')">
+            <div class="qa-icon">📂</div>
+            <div class="qa-title">Importar CSV</div>
+            <div class="qa-desc">Analise relatórios do Meta e Google</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── IMPORTAR CSV ─── -->
+    <div id="sec-importar" class="section">
+      <div class="section-header">
+        <h2>📂 Importar Relatório CSV</h2>
+        <p>Importe relatórios exportados do Meta Ads ou Google Ads. A IA analisa tudo automaticamente.</p>
+      </div>
+
+      <!-- Drop Zone -->
+      <div class="card" id="csv-drop-card">
+        <div class="csv-drop-zone" id="csv-drop-zone"
+          onclick="document.getElementById('csv-file-input').click()"
+          ondragover="csvDragOver(event)" ondragleave="csvDragLeave(event)" ondrop="csvDrop(event)">
+          <input type="file" id="csv-file-input" accept=".csv,.txt" onchange="handleCSV(this.files[0])" />
+          <div class="csv-drop-icon">📊</div>
+          <div class="csv-drop-title">Arraste o CSV aqui ou clique para selecionar</div>
+          <div class="csv-drop-sub">Suporta relatórios exportados do Gerenciador de Anúncios<br>Formatos: .csv, .txt com separação por vírgula ou ponto-e-vírgula</div>
+          <div class="csv-source-badges">
+            <span class="csv-badge meta">📘 Meta Ads</span>
+            <span class="csv-badge google">🔍 Google Ads</span>
+            <span class="csv-badge tiktok">🎵 TikTok Ads</span>
+          </div>
+        </div>
+        <div style="margin-top:14px;font-size:12px;color:var(--text2);text-align:center">
+          💡 No Meta: Gerenciador de Anúncios → Exportar → CSV &nbsp;|&nbsp; No Google: Relatórios → Download → CSV
+        </div>
+      </div>
+
+      <!-- Resultado do CSV -->
+      <div id="csv-result-area" style="display:none">
+
+        <!-- Info do arquivo -->
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+            <div>
+              <div class="card-title" style="margin-bottom:4px">✅ Arquivo importado: <span id="csv-filename" style="color:var(--accent2)"></span></div>
+              <div style="font-size:13px;color:var(--text2)" id="csv-info"></div>
+            </div>
+            <button class="btn-sec" onclick="resetCSV()">🗑️ Remover arquivo</button>
+          </div>
+
+          <!-- Resumo das métricas -->
+          <div class="csv-summary" id="csv-summary"></div>
+
+          <!-- Plataforma detectada -->
+          <div id="csv-platform-badge" style="margin-bottom:12px"></div>
+        </div>
+
+        <!-- Tabela de dados -->
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+            <div class="card-title" style="margin:0">📋 Dados importados</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <input type="text" id="csv-search" placeholder="Filtrar..." oninput="filterCSVTable(this.value)"
+                style="padding:7px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;outline:none;font-family:'DM Sans',sans-serif" />
+              <button class="copy-btn" onclick="exportCSVFiltered()">⬇️ Exportar filtrado</button>
+            </div>
+          </div>
+          <div class="csv-table-wrap">
+            <table class="csv-table" id="csv-table">
+              <thead id="csv-thead"></thead>
+              <tbody id="csv-tbody"></tbody>
+            </table>
+          </div>
+          <div style="font-size:12px;color:var(--text2);margin-top:8px" id="csv-row-count"></div>
+        </div>
+
+        <!-- Ações com IA -->
+        <div class="card">
+          <div class="card-title">🤖 O que fazer com esses dados?</div>
+          <div class="import-actions">
+            <div class="import-action-card" onclick="csvActionAnalyze()">
+              <div class="ia-icon">🔍</div>
+              <div class="ia-title">Análise completa com IA</div>
+              <div class="ia-desc">A IA analisa todas as métricas e entrega diagnóstico + recomendações</div>
+            </div>
+            <div class="import-action-card" onclick="csvActionFillForm()">
+              <div class="ia-icon">📝</div>
+              <div class="ia-title">Preencher formulário de análise</div>
+              <div class="ia-desc">Os dados do CSV preenchem automaticamente a seção Análise</div>
+            </div>
+            <div class="import-action-card" onclick="csvActionReport()">
+              <div class="ia-icon">📋</div>
+              <div class="ia-title">Gerar relatório para cliente</div>
+              <div class="ia-desc">Relatório profissional baseado nos dados reais importados</div>
+            </div>
+            <div class="import-action-card" onclick="csvActionViab()">
+              <div class="ia-icon">📐</div>
+              <div class="ia-title">Calcular viabilidade</div>
+              <div class="ia-desc">Preenche a calculadora de viabilidade com os dados do CSV</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Output da IA pós-CSV -->
+        <div id="csv-ai-output" style="display:none">
+          <div class="card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+              <div class="card-title" style="margin:0" id="csv-ai-title">📊 Resultado</div>
+              <button class="copy-btn" onclick="copyResult('csv-ai-content')">Copiar</button>
+            </div>
+            <div class="progress-bar-wrap" id="csv-progress-wrap" style="display:none">
+              <div class="progress-bar-fill" id="csv-progress-fill" style="width:0%"></div>
+            </div>
+            <div class="ai-result" id="csv-ai-content" style="margin-top:12px"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <div id="sec-analise" class="section">
+      <div class="section-header">
+        <h2>🔍 Análise de Campanha</h2>
+        <p>Importe um CSV ou preencha os dados manualmente para receber uma análise completa com IA</p>
+      </div>
+
+      <!-- Importar CSV inline -->
+      <div class="card" id="analise-csv-card">
+        <div class="card-title">📂 Importar relatório CSV <span class="badge">Opcional</span></div>
+        <div id="analise-csv-drop" class="csv-drop-zone" style="padding:28px 20px"
+          ondragover="csvDragOver(event)" ondragleave="csvDragLeave(event)" ondrop="csvDropAnalise(event)">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:14px">
+            <div style="font-size:40px">📊</div>
+            <div style="text-align:center">
+              <div style="font-weight:700;font-size:15px;margin-bottom:6px">Arraste arquivos CSV ou uma pasta inteira aqui</div>
+              <div style="font-size:12px;color:var(--text2);margin-bottom:14px">Meta Ads · Google Ads · TikTok Ads — múltiplos arquivos serão combinados automaticamente</div>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+              <button class="btn-accent" style="font-size:13px;padding:9px 18px" onclick="document.getElementById('analise-csv-input').click()">
+                📄 Selecionar arquivos
+              </button>
+              <button class="btn-sec" style="font-size:13px;padding:9px 18px" onclick="document.getElementById('analise-csv-folder').click()">
+                📁 Selecionar pasta
+              </button>
+            </div>
+            <input type="file" id="analise-csv-input" accept=".csv,.txt" multiple style="display:none" onchange="handleCSVFiles(this.files)" />
+            <input type="file" id="analise-csv-folder" style="display:none" webkitdirectory mozdirectory onchange="handleCSVFiles(this.files)" />
+          </div>
+        </div>
+
+        <!-- Lista de arquivos carregados -->
+        <div id="analise-csv-file-list" style="display:none;margin-top:14px">
+          <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px">ARQUIVOS CARREGADOS</div>
+          <div id="analise-csv-file-items" style="display:flex;flex-direction:column;gap:6px"></div>
+        </div>
+
+        <!-- Status pós-upload -->
+        <div id="analise-csv-status" style="display:none;margin-top:12px">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-size:22px">✅</span>
+              <div>
+                <div style="font-weight:600;font-size:14px" id="analise-csv-fname"></div>
+                <div style="font-size:12px;color:var(--text2)" id="analise-csv-finfo"></div>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn-accent" style="font-size:13px;padding:8px 16px" onclick="csvFillAnalise()">⚡ Preencher campos</button>
+              <button class="btn-sec" style="font-size:13px;padding:8px 14px" onclick="resetAnaliseCSV()">✕ Limpar</button>
+            </div>
+          </div>
+          <div class="csv-summary" id="analise-csv-summary" style="margin-top:12px"></div>
+        </div>
+        <div style="margin-top:10px;font-size:12px;color:var(--text2)">
+          💡 Após importar, clique em <b>Preencher campos</b> para auto-completar as métricas abaixo
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="steps-indicator" id="steps-bar"></div>
+        <div class="step-label">Etapa <span id="step-num">1</span> de 5</div>
+
+        <!-- Step 1 -->
+        <div id="step-1">
+          <div class="card-title">📌 Informações Gerais</div>
+          <div class="field-row">
+            <div class="field"><label>Produto/Serviço</label><input type="text" id="a-produto" placeholder="Ex: Curso de Inglês Online" /></div>
+            <div class="field"><label>Plataforma</label>
+              <select id="a-plataforma">
+                <option>Meta Ads</option><option>Google Ads</option><option>TikTok Ads</option><option>LinkedIn Ads</option><option>Kwai Ads</option>
+              </select>
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>Orçamento diário (R$)</label><input type="number" id="a-orcamento" placeholder="Ex: 50" /></div>
+            <div class="field"><label>Segmento</label>
+              <select id="a-segmento">
+                <option>Afiliado</option><option>E-commerce</option><option>Geração de Leads</option><option>Produtor Digital</option><option>Dropshipping</option>
+              </select>
+            </div>
+          </div>
+          <div class="field"><label>Objetivo da campanha</label>
+            <select id="a-objetivo">
+              <option>Conversão / Vendas</option><option>Geração de Leads</option><option>Tráfego para site</option><option>Reconhecimento de marca</option><option>Instalações de app</option>
+            </select>
+          </div>
+          <div class="btn-row"><button class="btn-accent" onclick="nextStep()">Próximo →</button></div>
+        </div>
+
+        <!-- Step 2 -->
+        <div id="step-2" style="display:none">
+          <div class="card-title">📈 Métricas Atuais</div>
+          <div class="field-row">
+            <div class="field"><label>CTR atual (%)</label><input type="number" step="0.1" id="a-ctr" placeholder="Ex: 1.5" /></div>
+            <div class="field"><label>CPC (R$)</label><input type="number" step="0.01" id="a-cpc" placeholder="Ex: 2.50" /></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>Taxa de conversão (%)</label><input type="number" step="0.1" id="a-conv" placeholder="Ex: 3.2" /></div>
+            <div class="field"><label>ROAS atual</label><input type="number" step="0.1" id="a-roas" placeholder="Ex: 4.0" /></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>CPL / CPA (R$)</label><input type="number" step="0.01" id="a-cpa" placeholder="Ex: 18.00" /></div>
+            <div class="field"><label>Impressões diárias</label><input type="number" id="a-imp" placeholder="Ex: 5000" /></div>
+          </div>
+          <div class="btn-row">
+            <button class="btn-sec" onclick="prevStep()">← Voltar</button>
+            <button class="btn-accent" onclick="nextStep()">Próximo →</button>
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div id="step-3" style="display:none">
+          <div class="card-title">🎯 Público-alvo</div>
+          <div class="field-row">
+            <div class="field"><label>Faixa etária</label><input type="text" id="a-idade" placeholder="Ex: 25-45 anos" /></div>
+            <div class="field"><label>Gênero</label>
+              <select id="a-genero"><option>Todos</option><option>Masculino</option><option>Feminino</option></select>
+            </div>
+          </div>
+          <div class="field"><label>Interesses / Comportamentos</label>
+            <textarea id="a-interesses" placeholder="Ex: Empreendedorismo, marketing digital, tecnologia..."></textarea>
+          </div>
+          <div class="field"><label>Localização</label><input type="text" id="a-local" placeholder="Ex: Brasil - São Paulo, Rio de Janeiro" /></div>
+          <div class="field"><label>Tipo de público</label>
+            <select id="a-publico">
+              <option>Público frio (interesse)</option><option>Público morno (lookalike)</option><option>Público quente (remarketing)</option>
+            </select>
+          </div>
+          <div class="btn-row">
+            <button class="btn-sec" onclick="prevStep()">← Voltar</button>
+            <button class="btn-accent" onclick="nextStep()">Próximo →</button>
+          </div>
+        </div>
+
+        <!-- Step 4 -->
+        <div id="step-4" style="display:none">
+          <div class="card-title">🖼️ Criativos e Copy</div>
+          <div class="field-row">
+            <div class="field"><label>Formato do criativo</label>
+              <select id="a-formato">
+                <option>Imagem estática</option><option>Vídeo curto (Reels/TikTok)</option><option>Carrossel</option><option>Coleção</option><option>Stories</option>
+              </select>
+            </div>
+            <div class="field"><label>Tom de voz</label>
+              <select id="a-tom">
+                <option>Urgência / Escassez</option><option>Emocional / Storytelling</option><option>Educativo / Informativo</option><option>Direto / Oferta</option><option>Social proof</option>
+              </select>
+            </div>
+          </div>
+          <div class="field"><label>Hook atual (primeiros 3 segundos / primeira linha)</label>
+            <textarea id="a-hook" placeholder="Ex: 'Você ainda paga caro por cursos de inglês?'"></textarea>
+          </div>
+          <div class="field"><label>Problemas identificados (opcional)</label>
+            <textarea id="a-problemas" placeholder="Ex: CTR baixo, alto CPC, criativo cansado..."></textarea>
+          </div>
+          <div class="btn-row">
+            <button class="btn-sec" onclick="prevStep()">← Voltar</button>
+            <button class="btn-accent" onclick="nextStep()">Próximo →</button>
+          </div>
+        </div>
+
+        <!-- Step 5 -->
+        <div id="step-5" style="display:none">
+          <div class="card-title">✅ Confirmar e Analisar</div>
+          <div id="analise-summary" style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.8;"></div>
+          <div class="field"><label>Contexto adicional (opcional)</label>
+            <textarea id="a-extra" placeholder="Alguma informação extra que a IA deve considerar?"></textarea>
+          </div>
+          <div class="btn-row">
+            <button class="btn-sec" onclick="prevStep()">← Voltar</button>
+            <button class="btn-accent" id="btn-analisar" onclick="runAnalysis()">🤖 Analisar com IA</button>
+          </div>
+          <div id="analise-result" style="margin-top:20px;display:none">
+            <hr class="divider" />
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+              <div class="card-title" style="margin:0">📊 Resultado da Análise</div>
+              <button class="copy-btn" onclick="copyResult('analise-content')">Copiar</button>
+            </div>
+            <div class="ai-result" id="analise-content"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── CRIATIVOS ─── -->
+    <div id="sec-criativos" class="section">
+      <div class="section-header">
+        <h2>✍️ Gerador de Criativos</h2>
+        <p>Gere copies, headlines e scripts para seus anúncios com IA</p>
+      </div>
+      <div class="card">
+        <div class="mode-toggle">
+          <button class="mode-btn active" onclick="switchCreativeMode('entrevista')">💬 Entrevista guiada</button>
+          <button class="mode-btn" onclick="switchCreativeMode('prints')">📸 Enviar prints</button>
+        </div>
+
+        <!-- Entrevista -->
+        <div id="mode-entrevista">
+          <div class="field-row">
+            <div class="field"><label>Produto/Oferta</label><input type="text" id="c-produto" placeholder="Ex: Curso de Tráfego Pago" /></div>
+            <div class="field"><label>Plataforma</label>
+              <select id="c-plat"><option>Meta Ads</option><option>Google Ads</option><option>TikTok Ads</option><option>LinkedIn Ads</option></select>
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>Formato</label>
+              <select id="c-formato"><option>Headline</option><option>Copy completo</option><option>Script de vídeo</option><option>Stories</option><option>CTAs</option></select>
+            </div>
+            <div class="field"><label>Quantidade de variações</label>
+              <select id="c-qtd"><option>3</option><option>5</option><option>10</option></select>
+            </div>
+          </div>
+          <div class="field"><label>Público-alvo</label>
+            <input type="text" id="c-publico" placeholder="Ex: Empreendedores 30-50 anos que querem escalar vendas" />
+          </div>
+          <div class="field"><label>Diferencial / Proposta única</label>
+            <textarea id="c-diferencial" placeholder="Ex: Metodologia exclusiva, resultados em 30 dias, suporte vitalício..."></textarea>
+          </div>
+          <div class="field"><label>Tom de voz</label>
+            <div class="select-chips" id="tom-chips">
+              <button class="chip sel" data-val="urgência">🔥 Urgência</button>
+              <button class="chip" data-val="emocional">💛 Emocional</button>
+              <button class="chip" data-val="educativo">📚 Educativo</button>
+              <button class="chip" data-val="direto">🎯 Direto</button>
+              <button class="chip" data-val="prova social">⭐ Prova social</button>
+              <button class="chip" data-val="curiosidade">🤔 Curiosidade</button>
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="btn-accent" onclick="runCreative()">✨ Gerar criativos</button>
+          </div>
+        </div>
+
+        <!-- Prints -->
+        <div id="mode-prints" style="display:none">
+          <div class="upload-area" id="upload-area" onclick="document.getElementById('file-input').click()">
+            <div class="upload-icon">📷</div>
+            <p>Clique para enviar prints dos seus anúncios atuais</p>
+            <p style="font-size:12px;margin-top:6px;opacity:.6">PNG, JPG, WEBP • máx. 5 imagens</p>
+            <input type="file" id="file-input" accept="image/*" multiple onchange="handleFiles(this.files)" />
+          </div>
+          <div class="preview-grid" id="preview-grid"></div>
+          <div class="field" style="margin-top:14px"><label>O que você quer melhorar?</label>
+            <textarea id="print-instrucao" placeholder="Ex: O CTR está baixo. Gere versões com hook mais agressivo e CTA diferente."></textarea>
+          </div>
+          <div class="btn-row">
+            <button class="btn-accent" onclick="runCreativePrints()">🤖 Analisar e gerar variações</button>
+          </div>
+        </div>
+
+        <div id="criativo-result" style="margin-top:20px;display:none">
+          <hr class="divider" />
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div class="card-title" style="margin:0">✨ Criativos gerados</div>
+            <button class="copy-btn" onclick="copyResult('criativo-content')">Copiar</button>
+          </div>
+          <div class="ai-result" id="criativo-content"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── CHARS ─── -->
+    <div id="sec-chars" class="section">
+      <div class="section-header">
+        <h2>🔤 Contador de Caracteres</h2>
+        <p>Verifique os limites de cada plataforma antes de publicar</p>
+      </div>
+      <div class="card">
+        <div class="platform-tabs" id="plat-tabs">
+          <button class="plat-tab active" onclick="switchPlatform('meta')">📘 Meta Ads</button>
+          <button class="plat-tab" onclick="switchPlatform('google')">🔍 Google Ads</button>
+          <button class="plat-tab" onclick="switchPlatform('tiktok')">🎵 TikTok Ads</button>
+          <button class="plat-tab" onclick="switchPlatform('linkedin')">💼 LinkedIn Ads</button>
+        </div>
+        <div id="char-fields"></div>
+      </div>
+    </div>
+
+    <!-- ─── KEYWORDS ─── -->
+    <div id="sec-keywords" class="section">
+      <div class="section-header">
+        <h2>🔑 Palavras-chave</h2>
+        <p>Organize suas palavras-chave positivas e negativas por campanha</p>
+      </div>
+      <div class="card">
+        <div class="field"><label>Campanha</label><input type="text" id="kw-campanha" placeholder="Ex: Campanha Tráfego - Google Search" /></div>
+        <div class="kw-grid">
+          <div class="kw-col pos">
+            <h4>✅ Positivas</h4>
+            <div class="kw-input-row">
+              <input type="text" id="kw-pos-input" placeholder="Adicionar palavra..." onkeydown="if(event.key==='Enter')addKw('pos')" />
+              <button class="kw-add" onclick="addKw('pos')">+</button>
+            </div>
+            <div class="kw-tags" id="kw-pos-tags"></div>
+          </div>
+          <div class="kw-col neg">
+            <h4>❌ Negativas</h4>
+            <div class="kw-input-row">
+              <input type="text" id="kw-neg-input" placeholder="Adicionar palavra..." onkeydown="if(event.key==='Enter')addKw('neg')" />
+              <button class="kw-add" style="background:var(--danger)" onclick="addKw('neg')">+</button>
+            </div>
+            <div class="kw-tags" id="kw-neg-tags"></div>
+          </div>
+        </div>
+        <div class="btn-row" style="margin-top:16px">
+          <button class="btn-accent" onclick="suggestKeywords()">🤖 Sugerir com IA</button>
+          <button class="copy-btn" onclick="exportKeywords()">📋 Exportar lista</button>
+        </div>
+        <div id="kw-result" style="margin-top:16px;display:none">
+          <div class="ai-result" id="kw-content"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── VIABILIDADE ─── -->
+    <div id="sec-viabilidade" class="section">
+      <div class="section-header">
+        <h2>📐 Viabilidade de Campanha</h2>
+        <p>Analise se sua campanha é viável financeiramente antes de investir</p>
+      </div>
+      <div class="card">
+        <div class="field-row">
+          <div class="field"><label>Preço do produto (R$)</label><input type="number" id="v-preco" placeholder="Ex: 297" /></div>
+          <div class="field"><label>Comissão / Margem (%)</label><input type="number" id="v-comissao" placeholder="Ex: 40" /></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Taxa de conversão esperada (%)</label><input type="number" step="0.1" id="v-taxa" placeholder="Ex: 2" /></div>
+          <div class="field"><label>CPC estimado (R$)</label><input type="number" step="0.01" id="v-cpc" placeholder="Ex: 1.50" /></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Orçamento total (R$)</label><input type="number" id="v-orcamento" placeholder="Ex: 1500" /></div>
+          <div class="field"><label>Período (dias)</label><input type="number" id="v-periodo" placeholder="Ex: 30" /></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn-accent" onclick="calcViab()">Calcular viabilidade</button>
+        </div>
+        <div id="viab-result" style="margin-top:20px;display:none">
+          <hr class="divider" />
+          <div class="card-title">📊 Projeção financeira</div>
+          <div id="viab-meters"></div>
+          <div class="ai-result" id="viab-content" style="margin-top:14px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── RELATÓRIO ─── -->
+    <div id="sec-relatorio" class="section">
+      <div class="section-header">
+        <h2>📋 Relatório para Cliente</h2>
+        <p>Gere um relatório profissional para apresentar ao seu cliente</p>
+      </div>
+      <div class="card">
+        <div class="field-row">
+          <div class="field"><label>Nome do cliente / empresa</label><input type="text" id="r-cliente" placeholder="Ex: Empresa XYZ" /></div>
+          <div class="field"><label>Período do relatório</label><input type="text" id="r-periodo" placeholder="Ex: Junho/2025" /></div>
+        </div>
+        <div class="field"><label>Resultados obtidos</label>
+          <textarea id="r-resultados" placeholder="Ex: CTR aumentou 40%, CPA reduziu 20%, ROAS atingiu 5.2x..."></textarea>
+        </div>
+        <div class="field"><label>Próximos passos planejados</label>
+          <textarea id="r-proximos" placeholder="Ex: Teste A/B de criativos, expansão de público, aumento de orçamento..."></textarea>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Gasto total (R$)</label><input type="number" id="r-gasto" placeholder="Ex: 3200" /></div>
+          <div class="field"><label>Receita gerada (R$)</label><input type="number" id="r-receita" placeholder="Ex: 14800" /></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn-accent" onclick="runReport()">📄 Gerar relatório</button>
+        </div>
+        <div id="report-result" style="margin-top:20px;display:none">
+          <hr class="divider" />
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div class="card-title" style="margin:0">📋 Relatório gerado</div>
+            <button class="copy-btn" onclick="copyResult('report-content')">Copiar</button>
+          </div>
+          <div class="report-preview" id="report-content"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── CONSULTORIA ─── -->
+    <div id="sec-consultoria" class="section">
+      <div class="section-header">
+        <h2>🤖 Consultoria IA</h2>
+        <p>Tire dúvidas sobre suas campanhas em tempo real</p>
+      </div>
+      <div class="card">
+        <div class="chat-box" id="chat-box">
+          <div class="chat-msg ai">
+            <div class="chat-bubble">Olá! Sou o seu consultor de tráfego pago com IA. Pode me perguntar sobre Meta Ads, Google Ads, TikTok, estratégias, métricas, criativos — o que precisar! 🚀</div>
+          </div>
+        </div>
+        <div class="chat-input-row">
+          <input type="text" id="chat-input" placeholder="Ex: Por que meu CPC está alto no Meta?" onkeydown="if(event.key==='Enter')sendChat()" />
+          <button class="btn-send" onclick="sendChat()">Enviar</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<div id="toast-container"></div>
+
+<script>
+// ─── STATE ───
+const DEMO = { email: 'demo@gestoria.com', pass: 'demo123' };
+let currentUser = null;
+let currentStep = 1;
+const totalSteps = 5;
+let kwPos = [], kwNeg = [];
+let chatHistory = [];
+let stats = { analyses: 0, criativos: 0, kw: 0, reports: 0 };
+let uploadedImages = [];
+let selectedToms = ['urgência'];
+
+// ─── PLATFORM CHARS ───
+const PLATFORMS = {
+  meta: {
+    name: 'Meta Ads',
+    fields: [
+      { id: 'meta-headline', label: 'Headline', max: 40, type: 'input' },
+      { id: 'meta-primary', label: 'Texto principal (Primary Text)', max: 125, type: 'textarea' },
+      { id: 'meta-desc', label: 'Descrição', max: 30, type: 'input' },
+      { id: 'meta-cta', label: 'CTA (Call to Action)', max: 20, type: 'input' },
+    ]
+  },
+  google: {
+    name: 'Google Ads',
+    fields: [
+      { id: 'google-h1', label: 'Headline 1', max: 30, type: 'input' },
+      { id: 'google-h2', label: 'Headline 2', max: 30, type: 'input' },
+      { id: 'google-h3', label: 'Headline 3', max: 30, type: 'input' },
+      { id: 'google-d1', label: 'Descrição 1', max: 90, type: 'textarea' },
+      { id: 'google-d2', label: 'Descrição 2', max: 90, type: 'textarea' },
+    ]
+  },
+  tiktok: {
+    name: 'TikTok Ads',
+    fields: [
+      { id: 'tiktok-nome', label: 'Nome do anúncio', max: 512, type: 'input' },
+      { id: 'tiktok-texto', label: 'Texto do anúncio', max: 100, type: 'textarea' },
+      { id: 'tiktok-cta', label: 'CTA', max: 20, type: 'input' },
+    ]
+  },
+  linkedin: {
+    name: 'LinkedIn Ads',
+    fields: [
+      { id: 'linkedin-intro', label: 'Texto introdutório', max: 600, type: 'textarea' },
+      { id: 'linkedin-headline', label: 'Headline', max: 200, type: 'input' },
+      { id: 'linkedin-desc', label: 'Descrição', max: 300, type: 'textarea' },
+    ]
+  }
+};
+let currentPlatform = 'meta';
+
+// ─── AUTH ───
+function switchAuthTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach((t,i) => t.classList.toggle('active', (i===0&&tab==='login')||(i===1&&tab==='register')));
+  document.getElementById('panel-login').classList.toggle('active', tab==='login');
+  document.getElementById('panel-register').classList.toggle('active', tab==='register');
+}
+
+function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  const level = document.getElementById('login-level').value;
+  if (!email || !pass) { document.getElementById('login-msg').textContent = 'Preencha todos os campos.'; return; }
+  if (email === DEMO.email && pass === DEMO.pass) {
+    currentUser = { name: 'Demo User', email, level, segment: 'gestor' };
+    startApp();
+  } else {
+    const users = JSON.parse(localStorage.getItem('gestoria_users') || '[]');
+    const u = users.find(x => x.email === email && x.pass === pass);
+    if (u) { currentUser = { ...u, level }; startApp(); }
+    else document.getElementById('login-msg').textContent = 'Credenciais inválidas.';
+  }
+}
+
+function doRegister() {
+  const name = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pass = document.getElementById('reg-pass').value;
+  const segment = document.getElementById('reg-seg').value;
+  const msg = document.getElementById('reg-msg');
+  if (!name || !email || !pass) { msg.textContent = 'Preencha todos os campos.'; return; }
+  if (pass.length < 6) { msg.textContent = 'Senha deve ter ao menos 6 caracteres.'; return; }
+  const users = JSON.parse(localStorage.getItem('gestoria_users') || '[]');
+  if (users.find(x => x.email === email)) { msg.textContent = 'E-mail já cadastrado.'; return; }
+  users.push({ name, email, pass, segment });
+  localStorage.setItem('gestoria_users', JSON.stringify(users));
+  currentUser = { name, email, segment, level: 'iniciante' };
+  startApp();
+}
+
+function startApp() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app').classList.add('visible');
+  document.getElementById('user-badge').textContent = currentUser.name;
+  document.getElementById('welcome-name').textContent = `Olá, ${currentUser.name.split(' ')[0]}! 👋`;
+  buildStepsBar();
+  switchPlatform('meta');
+  updateStats();
+}
+
+function doLogout() {
+  currentUser = null;
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('app').classList.remove('visible');
+}
+
+// ─── NAV ───
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('sec-' + id).classList.add('active');
+  const btns = document.querySelectorAll('.nav-btn');
+  const map = ['dashboard','importar','analise','criativos','chars','keywords','viabilidade','relatorio','consultoria'];
+  const idx = map.indexOf(id);
+  if (idx >= 0) btns[idx].classList.add('active');
+}
+
+// ─── STEPS ───
+function buildStepsBar() {
+  const bar = document.getElementById('steps-bar');
+  bar.innerHTML = '';
+  for (let i = 1; i <= totalSteps; i++) {
+    const d = document.createElement('div');
+    d.className = 'step-dot' + (i < currentStep ? ' done' : i === currentStep ? ' active' : '');
+    bar.appendChild(d);
+  }
+  document.getElementById('step-num').textContent = currentStep;
+}
+
+function nextStep() {
+  if (currentStep < totalSteps) {
+    document.getElementById('step-' + currentStep).style.display = 'none';
+    currentStep++;
+    document.getElementById('step-' + currentStep).style.display = 'block';
+    buildStepsBar();
+    if (currentStep === 5) buildSummary();
+  }
+}
+
+function prevStep() {
+  if (currentStep > 1) {
+    document.getElementById('step-' + currentStep).style.display = 'none';
+    currentStep--;
+    document.getElementById('step-' + currentStep).style.display = 'block';
+    buildStepsBar();
+  }
+}
+
+function buildSummary() {
+  const g = id => (document.getElementById(id)||{}).value || '–';
+  document.getElementById('analise-summary').innerHTML = `
+<b>Produto:</b> ${g('a-produto')} | <b>Plataforma:</b> ${g('a-plataforma')} | <b>Orçamento:</b> R$${g('a-orcamento')}/dia<br>
+<b>CTR:</b> ${g('a-ctr')}% | <b>CPC:</b> R$${g('a-cpc')} | <b>Conversão:</b> ${g('a-conv')}% | <b>ROAS:</b> ${g('a-roas')}<br>
+<b>Público:</b> ${g('a-idade')} | ${g('a-genero')} | ${g('a-local')}<br>
+<b>Formato:</b> ${g('a-formato')} | <b>Tom:</b> ${g('a-tom')}`;
+}
+
+// ─── API CALL ───
+async function callClaude(system, userMsg, isStream = false) {
+  const res = await fetch('/.netlify/functions/claude', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-opus-4-5',
+      max_tokens: 1500,
+      system,
+      messages: [{ role: 'user', content: userMsg }]
+    })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Erro na API');
+  }
+  const data = await res.json();
+  return data.content?.[0]?.text || '';
+}
+
+async function callClaudeChat(system, messages) {
+  const res = await fetch('/.netlify/functions/claude', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-opus-4-5',
+      max_tokens: 1000,
+      system,
+      messages
+    })
+  });
+  if (!res.ok) throw new Error('Erro na API');
+  const data = await res.json();
+  return data.content?.[0]?.text || '';
+}
+
+// ─── ANALYSIS ───
+async function runAnalysis() {
+  const g = id => (document.getElementById(id)||{}).value || '';
+  const btn = document.getElementById('btn-analisar');
+  btn.disabled = true;
+  btn.textContent = 'Analisando…';
+
+  const resultEl = document.getElementById('analise-result');
+  const contentEl = document.getElementById('analise-content');
+  resultEl.style.display = 'block';
+  contentEl.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div> Gerando análise…';
+
+  const prompt = `Analise esta campanha de tráfego pago e forneça insights detalhados:
+
+DADOS:
+- Produto: ${g('a-produto')} | Segmento: ${g('a-segmento')}
+- Plataforma: ${g('a-plataforma')} | Objetivo: ${g('a-objetivo')}
+- Orçamento diário: R$${g('a-orcamento')}
+
+MÉTRICAS:
+- CTR: ${g('a-ctr')}% | CPC: R$${g('a-cpc')}
+- Taxa de conversão: ${g('a-conv')}% | ROAS: ${g('a-roas')}
+- CPA/CPL: R$${g('a-cpa')} | Impressões/dia: ${g('a-imp')}
+
+PÚBLICO: ${g('a-idade')} | ${g('a-genero')} | ${g('a-local')} | ${g('a-publico')}
+Interesses: ${g('a-interesses')}
+
+CRIATIVO: ${g('a-formato')} | Tom: ${g('a-tom')}
+Hook atual: ${g('a-hook')}
+Problemas identificados: ${g('a-problemas')}
+
+Contexto extra: ${g('a-extra')}
+
+Forneça: 1) Diagnóstico geral 2) Pontos críticos 3) Recomendações prioritárias 4) Ações imediatas 5) Projeções se implementadas`;
+
+  const system = `Você é um especialista em tráfego pago com 10+ anos de experiência em Meta Ads, Google Ads e TikTok. Nível do usuário: ${currentUser?.level || 'intermediario'}. Seja direto, prático e use dados para embasar suas recomendações. Responda em português.`;
+
+  try {
+    const text = await callClaude(system, prompt);
+    contentEl.textContent = text;
+    stats.analyses++;
+    updateStats();
+    toast('✅ Análise concluída!', 'success');
+  } catch (e) {
+    contentEl.textContent = '❌ Erro: ' + e.message;
+    toast('Erro ao analisar', 'error');
+  }
+  btn.disabled = false;
+  btn.textContent = '🤖 Analisar com IA';
+}
+
+// ─── CRIATIVOS ───
+function switchCreativeMode(mode) {
+  document.querySelectorAll('.mode-btn').forEach((b,i) => b.classList.toggle('active', (i===0&&mode==='entrevista')||(i===1&&mode==='prints')));
+  document.getElementById('mode-entrevista').style.display = mode==='entrevista' ? 'block' : 'none';
+  document.getElementById('mode-prints').style.display = mode==='prints' ? 'block' : 'none';
+}
+
+// Chips de tom
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('#tom-chips .chip').forEach(c => {
+    c.addEventListener('click', () => {
+      c.classList.toggle('sel');
+      const val = c.dataset.val;
+      if (c.classList.contains('sel')) selectedToms.push(val);
+      else selectedToms = selectedToms.filter(t => t !== val);
+    });
+  });
+});
+
+async function runCreative() {
+  const g = id => (document.getElementById(id)||{}).value || '';
+  const resultEl = document.getElementById('criativo-result');
+  const contentEl = document.getElementById('criativo-content');
+  resultEl.style.display = 'block';
+  contentEl.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div> Gerando…';
+
+  const prompt = `Crie ${g('c-qtd')} variações de ${g('c-formato').toLowerCase()} para:
+
+Produto: ${g('c-produto')}
+Plataforma: ${g('c-plat')}
+Público: ${g('c-publico')}
+Diferencial: ${g('c-diferencial')}
+Tom de voz: ${selectedToms.join(', ')}
+
+Para cada variação, inclua o texto completo numerado e uma breve justificativa do ângulo usado.`;
+
+  const system = 'Você é um copywriter especialista em tráfego pago. Crie copies altamente persuasivos, com hooks fortes e CTAs claros. Responda em português.';
+
+  try {
+    const text = await callClaude(system, prompt);
+    contentEl.textContent = text;
+    stats.criativos++;
+    updateStats();
+    toast('✨ Criativos gerados!', 'success');
+  } catch (e) {
+    contentEl.textContent = '❌ Erro: ' + e.message;
+    toast('Erro ao gerar criativos', 'error');
+  }
+}
+
+function handleFiles(files) {
+  const grid = document.getElementById('preview-grid');
+  for (const f of files) {
+    if (uploadedImages.length >= 5) break;
+    const reader = new FileReader();
+    reader.onload = e => {
+      uploadedImages.push({ name: f.name, data: e.target.result });
+      const div = document.createElement('div');
+      div.className = 'preview-thumb';
+      div.innerHTML = `<img src="${e.target.result}" /><button class="rm" onclick="removeImg(${uploadedImages.length-1})">✕</button>`;
+      grid.appendChild(div);
+    };
+    reader.readAsDataURL(f);
+  }
+}
+
+function removeImg(idx) {
+  uploadedImages.splice(idx, 1);
+  const grid = document.getElementById('preview-grid');
+  grid.innerHTML = '';
+  uploadedImages.forEach((img, i) => {
+    const div = document.createElement('div');
+    div.className = 'preview-thumb';
+    div.innerHTML = `<img src="${img.data}" /><button class="rm" onclick="removeImg(${i})">✕</button>`;
+    grid.appendChild(div);
+  });
+}
+
+async function runCreativePrints() {
+  if (!uploadedImages.length) { toast('Envie ao menos um print', 'error'); return; }
+  const instrucao = document.getElementById('print-instrucao').value;
+  const resultEl = document.getElementById('criativo-result');
+  const contentEl = document.getElementById('criativo-content');
+  resultEl.style.display = 'block';
+  contentEl.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div> Analisando prints…';
+
+  const prompt = `Analise os prints de anúncios enviados e gere variações melhoradas.\n\nInstrução: ${instrucao || 'Melhore os criativos aumentando CTR e conversão.'}\n\nForneça 3-5 variações com: headline, copy e CTA sugeridos, explicando as melhorias.`;
+  const system = 'Você é um especialista em criação de anúncios para tráfego pago. Analise os prints e sugira melhorias focadas em performance.';
+
+  try {
+    const text = await callClaude(system, prompt);
+    contentEl.textContent = text;
+    stats.criativos++;
+    updateStats();
+    toast('✨ Análise concluída!', 'success');
+  } catch (e) {
+    contentEl.textContent = '❌ Erro: ' + e.message;
+  }
+}
+
+// ─── CHARS ───
+function switchPlatform(plat) {
+  currentPlatform = plat;
+  document.querySelectorAll('.plat-tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  renderCharFields(plat);
+}
+
+function renderCharFields(plat) {
+  const container = document.getElementById('char-fields');
+  const p = PLATFORMS[plat];
+  container.innerHTML = '';
+  p.fields.forEach(f => {
+    const pct = 0;
+    container.innerHTML += `
+<div class="char-field">
+  <label>${f.label} <span class="count ok" id="cnt-${f.id}">0 / ${f.max}</span></label>
+  ${f.type === 'textarea'
+    ? `<textarea id="${f.id}" placeholder="Digite aqui..." oninput="updateCount('${f.id}',${f.max})"></textarea>`
+    : `<input type="text" id="${f.id}" placeholder="Digite aqui..." oninput="updateCount('${f.id}',${f.max})" />`
+  }
+  <div class="char-bar"><div class="char-bar-fill" id="bar-${f.id}" style="width:0%"></div></div>
+</div>`;
+  });
+}
+
+function updateCount(id, max) {
+  const val = document.getElementById(id).value.length;
+  const cnt = document.getElementById('cnt-' + id);
+  const bar = document.getElementById('bar-' + id);
+  const pct = Math.min(100, (val / max) * 100);
+  cnt.textContent = `${val} / ${max}`;
+  cnt.className = 'count ' + (val > max ? 'over' : val > max * 0.85 ? 'warn' : 'ok');
+  bar.style.width = pct + '%';
+  bar.style.background = val > max ? 'var(--danger)' : val > max * 0.85 ? 'var(--warn)' : 'var(--success)';
+}
+
+// ─── KEYWORDS ───
+function addKw(type) {
+  const input = document.getElementById(`kw-${type}-input`);
+  const val = input.value.trim();
+  if (!val) return;
+  if (type === 'pos') kwPos.push(val);
+  else kwNeg.push(val);
+  input.value = '';
+  renderKwTags();
+  stats.kw++;
+  updateStats();
+}
+
+function renderKwTags() {
+  const posEl = document.getElementById('kw-pos-tags');
+  const negEl = document.getElementById('kw-neg-tags');
+  posEl.innerHTML = kwPos.map((k, i) => `<div class="kw-tag pos">${k} <span onclick="removeKw('pos',${i})">✕</span></div>`).join('');
+  negEl.innerHTML = kwNeg.map((k, i) => `<div class="kw-tag neg">${k} <span onclick="removeKw('neg',${i})">✕</span></div>`).join('');
+}
+
+function removeKw(type, idx) {
+  if (type === 'pos') kwPos.splice(idx, 1);
+  else kwNeg.splice(idx, 1);
+  renderKwTags();
+}
+
+async function suggestKeywords() {
+  const campanha = document.getElementById('kw-campanha').value;
+  if (!campanha) { toast('Informe o nome da campanha', 'error'); return; }
+  const resultEl = document.getElementById('kw-result');
+  const contentEl = document.getElementById('kw-content');
+  resultEl.style.display = 'block';
+  contentEl.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div>';
+
+  const prompt = `Para a campanha "${campanha}", sugira:
+1) 15 palavras-chave positivas de alta intenção
+2) 10 palavras-chave negativas importantes para filtrar tráfego irrelevante
+
+Organize em listas claras e explique brevemente a estratégia.`;
+
+  try {
+    const text = await callClaude('Você é especialista em Google Ads e pesquisa de palavras-chave.', prompt);
+    contentEl.textContent = text;
+    toast('🔑 Sugestões geradas!', 'success');
+  } catch (e) {
+    contentEl.textContent = '❌ Erro: ' + e.message;
+  }
+}
+
+function exportKeywords() {
+  const text = `POSITIVAS:\n${kwPos.join('\n')}\n\nNEGATIVAS:\n${kwNeg.join('\n')}`;
+  navigator.clipboard.writeText(text).then(() => toast('📋 Lista copiada!', 'success'));
+}
+
+// ─── VIABILIDADE ───
+function calcViab() {
+  const g = id => parseFloat(document.getElementById(id).value) || 0;
+  const preco = g('v-preco'), comissao = g('v-comissao') / 100;
+  const taxa = g('v-taxa') / 100, cpc = g('v-cpc');
+  const orcamento = g('v-orcamento'), periodo = g('v-periodo');
+
+  if (!preco || !cpc || !taxa) { toast('Preencha os campos obrigatórios', 'error'); return; }
+
+  const ticketLiquido = preco * comissao || preco;
+  const cliques = orcamento / cpc;
+  const vendas = cliques * taxa;
+  const receita = vendas * ticketLiquido;
+  const lucro = receita - orcamento;
+  const roas = receita / orcamento;
+  const roi = ((receita - orcamento) / orcamento) * 100;
+  const cpa = orcamento / (vendas || 1);
+
+  const resultEl = document.getElementById('viab-result');
+  const metersEl = document.getElementById('viab-meters');
+  const contentEl = document.getElementById('viab-content');
+  resultEl.style.display = 'block';
+
+  const viable = roi > 0;
+  const maxRoas = 10, maxRoi = 200;
+
+  metersEl.innerHTML = `
+<div class="viab-meter">
+  <label>ROAS projetado <span>${roas.toFixed(2)}x</span></label>
+  <div class="viab-bar"><div class="viab-bar-fill" style="width:${Math.min(100,(roas/maxRoas)*100)}%;background:${roas>=3?'var(--success)':roas>=1.5?'var(--warn)':'var(--danger)'}"></div></div>
+</div>
+<div class="viab-meter">
+  <label>ROI projetado <span>${roi.toFixed(1)}%</span></label>
+  <div class="viab-bar"><div class="viab-bar-fill" style="width:${Math.min(100,Math.max(0,(roi/maxRoi)*100))}%;background:${roi>=50?'var(--success)':roi>=0?'var(--warn)':'var(--danger)'}"></div></div>
+</div>`;
+
+  contentEl.textContent = `📊 PROJEÇÃO (${periodo} dias)
+
+💰 Orçamento: R$ ${orcamento.toFixed(2)}
+🖱️ Cliques estimados: ${Math.round(cliques).toLocaleString()}
+🛒 Vendas estimadas: ${Math.round(vendas)}
+💵 Receita bruta: R$ ${receita.toFixed(2)}
+📈 Lucro líquido: R$ ${lucro.toFixed(2)}
+🎯 ROAS: ${roas.toFixed(2)}x
+📊 ROI: ${roi.toFixed(1)}%
+🏷️ CPA médio: R$ ${cpa.toFixed(2)}
+
+${viable ? '✅ CAMPANHA VIÁVEL — O retorno projetado é positivo.' : '⚠️ ATENÇÃO — Com estas métricas, a campanha pode gerar prejuízo. Revise CPC, taxa de conversão ou margem.'}`;
+}
+
+// ─── RELATÓRIO ───
+async function runReport() {
+  const g = id => (document.getElementById(id)||{}).value || '';
+  const resultEl = document.getElementById('report-result');
+  const contentEl = document.getElementById('report-content');
+  resultEl.style.display = 'block';
+  contentEl.textContent = '⏳ Gerando relatório…';
+
+  const roas = g('r-receita') && g('r-gasto') ? (parseFloat(g('r-receita')) / parseFloat(g('r-gasto'))).toFixed(2) : 'N/A';
+
+  const prompt = `Gere um relatório profissional de campanha de tráfego pago para:
+
+Cliente: ${g('r-cliente')}
+Período: ${g('r-periodo')}
+Gasto total: R$ ${g('r-gasto')}
+Receita gerada: R$ ${g('r-receita')}
+ROAS: ${roas}x
+Resultados: ${g('r-resultados')}
+Próximos passos: ${g('r-proximos')}
+
+O relatório deve ser formal, profissional, com seções claras (Resumo Executivo, Resultados, Análise, Recomendações, Próximos Passos).`;
+
+  const system = 'Você é um gestor de tráfego pago profissional que cria relatórios claros e executivos para clientes. Seja profissional e objetivo.';
+
+  try {
+    const text = await callClaude(system, prompt);
+    contentEl.textContent = text;
+    stats.reports++;
+    updateStats();
+    toast('📋 Relatório gerado!', 'success');
+  } catch (e) {
+    contentEl.textContent = '❌ Erro: ' + e.message;
+  }
+}
+
+// ─── CHAT ───
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+
+  appendChatMsg('user', msg);
+  chatHistory.push({ role: 'user', content: msg });
+
+  const thinkingEl = appendChatMsg('ai', '⏳', true);
+
+  const system = `Você é um consultor especialista em tráfego pago (Meta Ads, Google Ads, TikTok Ads, LinkedIn Ads). Ajude gestores e afiliados com estratégias, métricas, criativos e otimizações. Seja direto, prático e use exemplos reais. Nível do usuário: ${currentUser?.level || 'intermediario'}. Responda em português.`;
+
+  try {
+    const reply = await callClaudeChat(system, chatHistory);
+    thinkingEl.remove();
+    appendChatMsg('ai', reply);
+    chatHistory.push({ role: 'assistant', content: reply });
+  } catch (e) {
+    thinkingEl.remove();
+    appendChatMsg('ai', '❌ Erro ao obter resposta: ' + e.message);
+  }
+}
+
+function appendChatMsg(role, text, temp = false) {
+  const box = document.getElementById('chat-box');
+  const div = document.createElement('div');
+  div.className = `chat-msg ${role}`;
+  const bubble = document.createElement('div');
+  bubble.className = 'chat-bubble';
+  bubble.textContent = text;
+  div.appendChild(bubble);
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+  if (temp) return div;
+}
+
+// ─── CSV IMPORT ───
+let csvData = { headers: [], rows: [], rawText: '', platform: '', filteredRows: [] };
+
+function csvDragOver(e) { e.preventDefault(); document.getElementById('csv-drop-zone').classList.add('drag-over'); }
+function csvDragLeave(e) { document.getElementById('csv-drop-zone').classList.remove('drag-over'); }
+function csvDrop(e) {
+  e.preventDefault();
+  document.getElementById('csv-drop-zone').classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f) handleCSV(f);
+}
+
+function handleCSV(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => parseCSV(e.target.result, file.name);
+  reader.readAsText(file, 'UTF-8');
+}
+
+function parseCSV(text, filename) {
+  // Detectar separador
+  const sep = text.includes(';') ? ';' : ',';
+  // Remover BOM e linhas vazias
+  const clean = text.replace(/^\uFEFF/, '').trim();
+  const lines = clean.split(/\r?\n/).filter(l => l.trim());
+
+  if (lines.length < 2) { toast('CSV inválido ou vazio', 'error'); return; }
+
+  // Headers
+  const headers = splitCSVLine(lines[0], sep);
+
+  // Rows
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const vals = splitCSVLine(lines[i], sep);
+    if (vals.length === 0 || vals.every(v => !v.trim())) continue;
+    const row = {};
+    headers.forEach((h, idx) => { row[h] = (vals[idx] || '').trim(); });
+    rows.push(row);
+  }
+
+  // Detectar plataforma
+  const allHeaders = headers.join(' ').toLowerCase();
+  let platform = 'Desconhecida';
+  if (allHeaders.includes('impressions') || allHeaders.includes('reach') || allHeaders.includes('frequency')) platform = 'Meta Ads';
+  else if (allHeaders.includes('impressões') || allHeaders.includes('alcance')) platform = 'Meta Ads';
+  else if (allHeaders.includes('clicks') && allHeaders.includes('cost / conv')) platform = 'Google Ads';
+  else if (allHeaders.includes('custo') && allHeaders.includes('conversões')) platform = 'Google Ads';
+  else if (allHeaders.includes('tiktok') || allHeaders.includes('video views')) platform = 'TikTok Ads';
+
+  csvData = { headers, rows, rawText: text, platform, filteredRows: rows, filename };
+  renderCSVResult(filename, rows.length);
+  toast(`✅ ${rows.length} linhas importadas!`, 'success');
+}
+
+function splitCSVLine(line, sep) {
+  const result = [];
+  let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') { inQ = !inQ; continue; }
+    if (ch === sep && !inQ) { result.push(cur); cur = ''; continue; }
+    cur += ch;
+  }
+  result.push(cur);
+  return result;
+}
+
+function renderCSVResult(filename, rowCount) {
+  document.getElementById('csv-drop-card').style.display = 'none';
+  document.getElementById('csv-result-area').style.display = 'block';
+  document.getElementById('csv-filename').textContent = filename;
+  document.getElementById('csv-info').textContent = `${rowCount} campanhas/anúncios · ${csvData.headers.length} colunas`;
+
+  // Badge plataforma
+  const plColors = { 'Meta Ads': '#1877f2', 'Google Ads': '#ea4335', 'TikTok Ads': '#ff0050' };
+  const plEmoji = { 'Meta Ads': '📘', 'Google Ads': '🔍', 'TikTok Ads': '🎵' };
+  document.getElementById('csv-platform-badge').innerHTML =
+    `<span style="padding:4px 14px;border-radius:20px;font-size:12px;font-weight:700;border:1px solid ${plColors[csvData.platform]||'var(--border)'};color:${plColors[csvData.platform]||'var(--text2)'}">
+      ${plEmoji[csvData.platform]||'📊'} ${csvData.platform} detectado
+    </span>`;
+
+  // Resumo das métricas-chave
+  renderCSVSummary();
+
+  // Tabela
+  renderCSVTable(csvData.rows);
+}
+
+// Mapeamento inteligente de nomes de coluna
+const COL_MAP = {
+  ctr:         ['ctr','taxa de cliques','click through rate','ctr (link)'],
+  cpc:         ['cpc','custo por clique','cost per click','avg. cpc','cpc (all)'],
+  cpm:         ['cpm','custo por mil','cost per mille','avg. cpm'],
+  roas:        ['roas','retorno','return on ad spend','purchase roas'],
+  impressoes:  ['impressions','impressões','impr.'],
+  cliques:     ['clicks','cliques','link clicks'],
+  gasto:       ['amount spent','valor gasto','cost','custo','spend'],
+  conversoes:  ['conversions','conversões','results','purchases'],
+  alcance:     ['reach','alcance'],
+  frequencia:  ['frequency','frequência'],
+};
+
+function findCol(headers, key) {
+  const aliases = COL_MAP[key] || [];
+  return headers.find(h => aliases.some(a => h.toLowerCase().trim().includes(a)));
+}
+
+function getVal(row, key) {
+  const col = findCol(csvData.headers, key);
+  if (!col) return null;
+  const raw = row[col] || '';
+  return parseFloat(raw.replace(/[^0-9.,\-]/g, '').replace(',', '.')) || null;
+}
+
+function getAvg(key) {
+  const vals = csvData.rows.map(r => getVal(r, key)).filter(v => v !== null);
+  if (!vals.length) return null;
+  return vals.reduce((a, b) => a + b, 0) / vals.length;
+}
+
+function getSum(key) {
+  const vals = csvData.rows.map(r => getVal(r, key)).filter(v => v !== null);
+  if (!vals.length) return null;
+  return vals.reduce((a, b) => a + b, 0);
+}
+
+function fmt(val, prefix = '', suffix = '', decimals = 2) {
+  if (val === null || val === undefined || isNaN(val)) return '—';
+  return prefix + val.toFixed(decimals) + suffix;
+}
+
+function renderCSVSummary() {
+  const gasto = getSum('gasto');
+  const impressoes = getSum('impressoes');
+  const cliques = getSum('cliques');
+  const conversoes = getSum('conversoes');
+  const ctr = getAvg('ctr');
+  const cpc = getAvg('cpc');
+  const roas = getAvg('roas');
+
+  const items = [
+    { val: fmt(gasto, 'R$ ', '', 2), lbl: 'Gasto total' },
+    { val: impressoes ? (impressoes/1000).toFixed(1)+'k' : '—', lbl: 'Impressões' },
+    { val: cliques ? cliques.toLocaleString('pt-BR') : '—', lbl: 'Cliques' },
+    { val: fmt(ctr, '', '%'), lbl: 'CTR médio' },
+    { val: fmt(cpc, 'R$ '), lbl: 'CPC médio' },
+    { val: fmt(roas, '', 'x'), lbl: 'ROAS médio' },
+    { val: conversoes ? Math.round(conversoes) : '—', lbl: 'Conversões' },
+  ].filter(i => i.val !== '—');
+
+  document.getElementById('csv-summary').innerHTML = items.map(i =>
+    `<div class="csv-sum-item"><div class="csv-sum-val">${i.val}</div><div class="csv-sum-lbl">${i.lbl}</div></div>`
+  ).join('');
+}
+
+function renderCSVTable(rows) {
+  const thead = document.getElementById('csv-thead');
+  const tbody = document.getElementById('csv-tbody');
+  const countEl = document.getElementById('csv-row-count');
+
+  // Limitar colunas a exibir (máx 12 para não explodir)
+  const displayHeaders = csvData.headers.slice(0, 12);
+
+  thead.innerHTML = '<tr>' + displayHeaders.map(h => `<th>${h}</th>`).join('') + '</tr>';
+
+  // Colunas numéricas para colorir
+  const numericKeys = ['ctr','cpc','cpm','roas','gasto','impressoes','cliques','conversoes'];
+  const numericCols = numericKeys.map(k => findCol(csvData.headers, k)).filter(Boolean);
+
+  tbody.innerHTML = rows.slice(0, 200).map(row => {
+    const cells = displayHeaders.map(h => {
+      const val = row[h] || '';
+      let cls = '';
+      if (numericCols.includes(h)) {
+        const n = parseFloat(val.replace(/[^0-9.,\-]/g, '').replace(',', '.'));
+        if (!isNaN(n)) {
+          // ROAS: bom >3, warn 1-3, ruim <1
+          if (h === findCol(csvData.headers, 'roas')) cls = n >= 3 ? 'metric-good' : n >= 1 ? 'metric-warn' : 'metric-bad';
+          // CTR: bom >2%, warn 1-2%, ruim <1%
+          else if (h === findCol(csvData.headers, 'ctr')) cls = n >= 2 ? 'metric-good' : n >= 1 ? 'metric-warn' : 'metric-bad';
+        }
+      }
+      return `<td class="${cls}">${val || '—'}</td>`;
+    }).join('');
+    return `<tr>${cells}</tr>`;
+  }).join('');
+
+  countEl.textContent = `Exibindo ${Math.min(rows.length, 200)} de ${rows.length} linhas` + (csvData.headers.length > 12 ? ` · ${csvData.headers.length - 12} colunas ocultas` : '');
+}
+
+function filterCSVTable(q) {
+  const lower = q.toLowerCase();
+  csvData.filteredRows = q
+    ? csvData.rows.filter(row => Object.values(row).some(v => v.toLowerCase().includes(lower)))
+    : csvData.rows;
+  renderCSVTable(csvData.filteredRows);
+}
+
+function exportCSVFiltered() {
+  const rows = csvData.filteredRows;
+  const lines = [csvData.headers.join(','), ...rows.map(r => csvData.headers.map(h => `"${(r[h]||'').replace(/"/g,'""')}"`).join(','))];
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'gestoria_filtrado.csv'; a.click();
+  toast('⬇️ CSV exportado!', 'success');
+}
+
+function resetCSV() {
+  csvData = { headers: [], rows: [], rawText: '', platform: '', filteredRows: [] };
+  document.getElementById('csv-drop-card').style.display = 'block';
+  document.getElementById('csv-result-area').style.display = 'none';
+  document.getElementById('csv-ai-output').style.display = 'none';
+  document.getElementById('csv-file-input').value = '';
+}
+
+// ─── AÇÕES COM IA PÓS-CSV ───
+
+function buildCSVContext() {
+  const gasto = getSum('gasto'), impressoes = getSum('impressoes');
+  const cliques = getSum('cliques'), conversoes = getSum('conversoes');
+  const ctr = getAvg('ctr'), cpc = getAvg('cpc');
+  const roas = getAvg('roas'), cpm = getAvg('cpm');
+  const freq = getAvg('frequencia');
+
+  return `Plataforma: ${csvData.platform}
+Total de campanhas/anúncios: ${csvData.rows.length}
+Gasto total: ${fmt(gasto,'R$ ')}
+Impressões: ${impressoes ? Math.round(impressoes).toLocaleString('pt-BR') : '—'}
+Cliques: ${cliques ? Math.round(cliques).toLocaleString('pt-BR') : '—'}
+CTR médio: ${fmt(ctr,'','%')}
+CPC médio: ${fmt(cpc,'R$ ')}
+CPM médio: ${fmt(cpm,'R$ ')}
+ROAS médio: ${fmt(roas,'','x')}
+Conversões totais: ${conversoes ? Math.round(conversoes) : '—'}
+Frequência média: ${fmt(freq,'','x',1)}
+
+Primeiras linhas do relatório:
+${csvData.rows.slice(0,5).map(r => JSON.stringify(r)).join('\n')}`;
+}
+
+async function csvActionAnalyze() {
+  showCSVOutput('🔍 Análise completa com IA', 'Analisando dados…');
+  const ctx = buildCSVContext();
+  const prompt = `Analise este relatório de campanha de tráfego pago e forneça uma análise completa:
+
+${ctx}
+
+Forneça:
+1) 📊 Diagnóstico geral (saúde da conta)
+2) 🔴 Pontos críticos que precisam de atenção imediata
+3) 🟡 Alertas e oportunidades
+4) 🟢 O que está funcionando bem
+5) ⚡ Top 5 ações prioritárias a tomar agora
+6) 📈 Projeção: se as ações forem implementadas, qual melhora esperar?`;
+
+  const system = `Você é um especialista em tráfego pago com 10+ anos analisando relatórios de Meta Ads e Google Ads. Seja direto e baseie-se nos dados reais fornecidos. Responda em português.`;
+  await runCSVAI(prompt, system);
+  stats.analyses++; updateStats();
+}
+
+async function csvActionFillForm() {
+  // Preencher formulário e redirecionar
+  const ctr = getAvg('ctr'), cpc = getAvg('cpc'), roas = getAvg('roas');
+  const gasto = getSum('gasto');
+  const impressoes = getSum('impressoes');
+  const conversoes = getSum('conversoes');
+
+  if (ctr !== null) { const el = document.getElementById('a-ctr'); if(el) el.value = ctr.toFixed(2); }
+  if (cpc !== null) { const el = document.getElementById('a-cpc'); if(el) el.value = cpc.toFixed(2); }
+  if (roas !== null) { const el = document.getElementById('a-roas'); if(el) el.value = roas.toFixed(2); }
+  if (gasto !== null) { const el = document.getElementById('a-orcamento'); if(el) el.value = (gasto / (csvData.rows.length || 1)).toFixed(0); }
+  if (impressoes !== null) { const el = document.getElementById('a-imp'); if(el) el.value = Math.round(impressoes / (csvData.rows.length || 1)); }
+  if (conversoes !== null && gasto !== null) {
+    const cpa = gasto / conversoes;
+    const el = document.getElementById('a-cpa'); if(el) el.value = cpa.toFixed(2);
+  }
+  // Plataforma
+  const plSelect = document.getElementById('a-plataforma');
+  if (plSelect && csvData.platform !== 'Desconhecida') {
+    for (const opt of plSelect.options) { if (opt.text.includes(csvData.platform.split(' ')[0])) { opt.selected = true; break; } }
+  }
+
+  toast('📝 Formulário preenchido! Redirecionando…', 'success');
+  setTimeout(() => showSection('analise'), 800);
+}
+
+async function csvActionReport() {
+  showCSVOutput('📋 Relatório para cliente', 'Gerando relatório…');
+  const ctx = buildCSVContext();
+  const prompt = `Crie um relatório profissional para apresentar ao cliente com base nos seguintes dados reais de campanha:
+
+${ctx}
+
+O relatório deve ter:
+- Cabeçalho com período e resumo executivo
+- Seção de resultados com os números reais
+- Análise de performance
+- Insights e recomendações
+- Próximos passos
+
+Use formatação clara, profissional e adequada para enviar ao cliente.`;
+
+  const system = 'Você é um gestor de tráfego pago profissional. Crie relatórios executivos claros e profissionais para clientes. Responda em português.';
+  await runCSVAI(prompt, system);
+  stats.reports++; updateStats();
+}
+
+async function csvActionViab() {
+  const cpc = getAvg('cpc'), gasto = getSum('gasto'), conversoes = getSum('conversoes'), cliques = getSum('cliques');
+  const taxaConv = (cliques && conversoes) ? (conversoes / cliques) * 100 : null;
+
+  if (cpc !== null) { const el = document.getElementById('v-cpc'); if(el) el.value = cpc.toFixed(2); }
+  if (gasto !== null) { const el = document.getElementById('v-orcamento'); if(el) el.value = Math.round(gasto); }
+  if (taxaConv !== null) { const el = document.getElementById('v-taxa'); if(el) el.value = taxaConv.toFixed(2); }
+
+  toast('📐 Viabilidade preenchida! Redirecionando…', 'success');
+  setTimeout(() => showSection('viabilidade'), 800);
+}
+
+function showCSVOutput(title, loading) {
+  document.getElementById('csv-ai-output').style.display = 'block';
+  document.getElementById('csv-ai-title').textContent = title;
+  document.getElementById('csv-ai-content').innerHTML = `<div class="loading-dots"><span></span><span></span><span></span></div> ${loading}`;
+  document.getElementById('csv-ai-content').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+async function runCSVAI(prompt, system) {
+  // Barra de progresso animada
+  const progressWrap = document.getElementById('csv-progress-wrap');
+  const progressFill = document.getElementById('csv-progress-fill');
+  progressWrap.style.display = 'block';
+  let prog = 0;
+  const timer = setInterval(() => {
+    prog = Math.min(prog + Math.random() * 8, 90);
+    progressFill.style.width = prog + '%';
+  }, 300);
+
+  try {
+    const text = await callClaude(system, prompt);
+    clearInterval(timer);
+    progressFill.style.width = '100%';
+    setTimeout(() => { progressWrap.style.display = 'none'; progressFill.style.width = '0%'; }, 600);
+    document.getElementById('csv-ai-content').textContent = text;
+    toast('✅ Pronto!', 'success');
+  } catch (e) {
+    clearInterval(timer);
+    progressWrap.style.display = 'none';
+    document.getElementById('csv-ai-content').textContent = '❌ Erro: ' + e.message;
+    toast('Erro ao processar', 'error');
+  }
+}
+
+
+// ─── CSV DENTRO DA ANÁLISE ───
+let analiseCSVData = null;
+let analiseCSVFiles = []; // lista de arquivos carregados
+
+function csvDropAnalise(e) {
+  e.preventDefault();
+  document.getElementById('analise-csv-drop').classList.remove('drag-over');
+  // Suporte a pasta arrastada via DataTransferItemList
+  const items = e.dataTransfer.items;
+  if (items) {
+    const filePromises = [];
+    for (const item of items) {
+      if (item.kind === 'file') {
+        const entry = item.webkitGetAsEntry ? item.webkitGetAsEntry() : null;
+        if (entry && entry.isDirectory) {
+          filePromises.push(readDirEntries(entry));
+        } else {
+          const f = item.getAsFile();
+          if (f && isCSV(f)) filePromises.push(Promise.resolve([f]));
+        }
+      }
+    }
+    Promise.all(filePromises).then(results => {
+      const allFiles = results.flat();
+      if (allFiles.length) processCSVFiles(allFiles);
+      else toast('Nenhum arquivo CSV encontrado', 'error');
+    });
+  } else {
+    const files = Array.from(e.dataTransfer.files).filter(isCSV);
+    if (files.length) processCSVFiles(files);
+    else toast('Nenhum arquivo CSV encontrado', 'error');
+  }
+}
+
+function readDirEntries(dirEntry) {
+  return new Promise(resolve => {
+    const reader = dirEntry.createReader();
+    const allFiles = [];
+    function readBatch() {
+      reader.readEntries(entries => {
+        if (!entries.length) { resolve(allFiles); return; }
+        const proms = entries.map(entry => {
+          if (entry.isFile) return new Promise(res => entry.file(f => res(isCSV(f) ? [f] : [])));
+          if (entry.isDirectory) return readDirEntries(entry);
+          return Promise.resolve([]);
+        });
+        Promise.all(proms).then(results => { allFiles.push(...results.flat()); readBatch(); });
+      });
+    }
+    readBatch();
+  });
+}
+
+function isCSV(f) { return f.name.match(/\.(csv|txt)$/i); }
+
+function handleCSVFiles(fileList) {
+  const files = Array.from(fileList).filter(isCSV);
+  if (!files.length) { toast('Nenhum arquivo CSV encontrado', 'error'); return; }
+  processCSVFiles(files);
+}
+
+function processCSVFiles(files) {
+  analiseCSVFiles = [];
+  let loaded = 0;
+  const allRows = [];
+  let mergedHeaders = [];
+  let platform = 'Desconhecida';
+
+  // Mostrar lista de arquivos imediatamente
+  const listEl = document.getElementById('analise-csv-file-list');
+  const itemsEl = document.getElementById('analise-csv-file-items');
+  listEl.style.display = 'block';
+  itemsEl.innerHTML = files.map((f, i) =>
+    `<div id="csv-file-item-${i}" style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:13px">
+      <span style="color:var(--text2)">⏳</span>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.name}</span>
+      <span style="color:var(--text2);font-size:11px">—</span>
+    </div>`
+  ).join('');
+
+  files.forEach((file, idx) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const text = e.target.result;
+      const sep = text.includes(';') ? ';' : ',';
+      const clean = text.replace(/^\uFEFF/, '').trim();
+      const lines = clean.split(/\r?\n/).filter(l => l.trim());
+      if (lines.length < 2) {
+        updateFileItem(idx, file.name, 0, '⚠️ Vazio');
+        checkDone();
+        return;
+      }
+      const headers = splitCSVLine(lines[0], sep);
+      const rows = [];
+      for (let i = 1; i < lines.length; i++) {
+        const vals = splitCSVLine(lines[i], sep);
+        if (vals.every(v => !v.trim())) continue;
+        const row = { _source: file.name };
+        headers.forEach((h, i2) => { row[h] = (vals[i2] || '').trim(); });
+        rows.push(row);
+      }
+      // Detectar plataforma
+      const allH = headers.join(' ').toLowerCase();
+      if (platform === 'Desconhecida') {
+        if (allH.includes('amount spent') || allH.includes('reach') || allH.includes('impressions')) platform = 'Meta Ads';
+        else if (allH.includes('impressões') || allH.includes('alcance')) platform = 'Meta Ads';
+        else if (allH.includes('avg. cpc') || allH.includes('cost / conv')) platform = 'Google Ads';
+        else if (allH.includes('custo') && allH.includes('conversões')) platform = 'Google Ads';
+        else if (allH.includes('video views')) platform = 'TikTok Ads';
+      }
+      // Merge headers (união)
+      headers.forEach(h => { if (!mergedHeaders.includes(h)) mergedHeaders.push(h); });
+      allRows.push(...rows);
+      analiseCSVFiles.push({ name: file.name, rows: rows.length });
+      updateFileItem(idx, file.name, rows.length, '✅');
+      checkDone();
+    };
+    reader.onerror = () => { updateFileItem(idx, file.name, 0, '❌ Erro'); checkDone(); };
+    reader.readAsText(file, 'UTF-8');
+
+    function checkDone() {
+      loaded++;
+      if (loaded === files.length) finalize();
+    }
+  });
+
+  function finalize() {
+    if (!allRows.length) { toast('Nenhuma linha válida encontrada', 'error'); return; }
+    analiseCSVData = { headers: mergedHeaders, rows: allRows, platform };
+    document.getElementById('analise-csv-status').style.display = 'block';
+    document.getElementById('analise-csv-fname').textContent =
+      files.length === 1 ? files[0].name : `${files.length} arquivos combinados`;
+    document.getElementById('analise-csv-finfo').textContent =
+      `${allRows.length} linhas no total · ${mergedHeaders.length} colunas · ${platform}`;
+    renderAnaliseCSVSummary();
+    toast(`✅ ${files.length} arquivo(s) carregado(s) — ${allRows.length} linhas!`, 'success');
+  }
+}
+
+function updateFileItem(idx, name, rows, icon) {
+  const el = document.getElementById(`csv-file-item-${idx}`);
+  if (!el) return;
+  el.innerHTML = `
+    <span>${icon}</span>
+    <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${name}</span>
+    <span style="color:var(--text2);font-size:11px">${rows ? rows + ' linhas' : ''}</span>`;
+}
+
+function renderAnaliseCSVSummary() {
+  const backup = csvData;
+  csvData = analiseCSVData;
+  const gasto = getSum('gasto'), ctr = getAvg('ctr'), cpc = getAvg('cpc');
+  const roas = getAvg('roas'), conversoes = getSum('conversoes');
+  csvData = backup;
+  const items = [
+    { val: fmt(gasto,'R$ '), lbl: 'Gasto total' },
+    { val: fmt(ctr,'','%'), lbl: 'CTR médio' },
+    { val: fmt(cpc,'R$ '), lbl: 'CPC médio' },
+    { val: fmt(roas,'','x'), lbl: 'ROAS médio' },
+    { val: conversoes ? Math.round(conversoes) : '—', lbl: 'Conversões' },
+  ].filter(i => i.val && !['—','R$ —','—%','—x'].includes(i.val));
+  document.getElementById('analise-csv-summary').innerHTML = items.map(i =>
+    `<div class="csv-sum-item"><div class="csv-sum-val">${i.val}</div><div class="csv-sum-lbl">${i.lbl}</div></div>`
+  ).join('');
+}
+
+function csvFillAnalise() {
+  if (!analiseCSVData) return;
+  const backup = csvData;
+  csvData = analiseCSVData;
+  const ctr = getAvg('ctr'), cpc = getAvg('cpc'), roas = getAvg('roas');
+  const gasto = getSum('gasto'), impressoes = getSum('impressoes');
+  const conversoes = getSum('conversoes'), cliques = getSum('cliques');
+  const taxaConv = (cliques && conversoes) ? (conversoes / cliques) * 100 : null;
+  const cpa = (gasto && conversoes) ? gasto / conversoes : null;
+  csvData = backup;
+
+  const set = (id, val, dec = 2) => { if (val !== null && val !== undefined) { const el = document.getElementById(id); if (el) el.value = typeof val === 'number' ? val.toFixed(dec) : val; } };
+  set('a-ctr', ctr); set('a-cpc', cpc); set('a-roas', roas);
+  set('a-conv', taxaConv); set('a-cpa', cpa);
+  if (impressoes) { const el = document.getElementById('a-imp'); if (el) el.value = Math.round(impressoes / Math.max(analiseCSVData.rows.length, 1)); }
+  if (gasto) { const el = document.getElementById('a-orcamento'); if (el) el.value = Math.round(gasto / Math.max(analiseCSVData.rows.length, 1)); }
+  const plSelect = document.getElementById('a-plataforma');
+  if (plSelect && analiseCSVData.platform !== 'Desconhecida') {
+    for (const opt of plSelect.options) { if (opt.text.toLowerCase().includes(analiseCSVData.platform.split(' ')[0].toLowerCase())) { opt.selected = true; break; } }
+  }
+  toast('⚡ Campos preenchidos! Avançando para métricas…', 'success');
+  if (currentStep === 1) setTimeout(() => nextStep(), 700);
+}
+
+function resetAnaliseCSV() {
+  analiseCSVData = null;
+  analiseCSVFiles = [];
+  document.getElementById('analise-csv-drop').classList.remove('drag-over');
+  document.getElementById('analise-csv-status').style.display = 'none';
+  document.getElementById('analise-csv-file-list').style.display = 'none';
+  document.getElementById('analise-csv-file-items').innerHTML = '';
+  document.getElementById('analise-csv-input').value = '';
+  document.getElementById('analise-csv-folder').value = '';
+  document.getElementById('analise-csv-summary').innerHTML = '';
+}
+
+function copyResult(id) {
+  const el = document.getElementById(id);
+  navigator.clipboard.writeText(el.textContent).then(() => toast('📋 Copiado!', 'success'));
+}
+
+function updateStats() {
+  document.getElementById('stat-analyses').textContent = stats.analyses;
+  document.getElementById('stat-criativos').textContent = stats.criativos;
+  document.getElementById('stat-kw').textContent = stats.kw;
+  document.getElementById('stat-reports').textContent = stats.reports;
+}
+
+function toast(msg, type = 'success') {
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.innerHTML = `<span>${type === 'success' ? '✅' : '❌'}</span> ${msg}`;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+// Init chips
+window.addEventListener('load', () => {
+  document.querySelectorAll('#tom-chips .chip').forEach(c => {
+    c.addEventListener('click', () => {
+      c.classList.toggle('sel');
+      const val = c.dataset.val;
+      if (c.classList.contains('sel')) { if (!selectedToms.includes(val)) selectedToms.push(val); }
+      else selectedToms = selectedToms.filter(t => t !== val);
+    });
+  });
+  buildStepsBar();
+});
+</script>
+</body>
+</html>
