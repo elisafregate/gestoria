@@ -1241,6 +1241,50 @@ async function callClaudeChat(system, messages) {
 async function runAnalysis() {
   const g = id => (document.getElementById(id)||{}).value || '';
   const btn = document.getElementById('btn-analisar');
+
+  // Remover avisos anteriores
+  document.getElementById('analise-warnings')?.remove();
+
+  const ctr = g('a-ctr'), cpc = g('a-cpc'), orcamento = g('a-orcamento');
+  const roas = g('a-roas'), conv = g('a-conv'), produto = g('a-produto');
+
+  // BLOQUEIO: nenhuma métrica numérica preenchida
+  if (!ctr && !cpc && !orcamento) {
+    const resultEl = document.getElementById('analise-result');
+    const contentEl = document.getElementById('analise-content');
+    resultEl.style.display = 'block';
+    contentEl.innerHTML = `<div style="display:flex;align-items:flex-start;gap:12px;padding:4px">
+      <span style="font-size:24px;flex-shrink:0">🚫</span>
+      <div>
+        <div style="font-weight:700;font-size:15px;margin-bottom:6px;color:var(--danger)">Dados insuficientes para análise</div>
+        <div style="font-size:13px;line-height:1.7;color:var(--text2)">Preencha ao menos um dos campos numéricos principais: <b>CTR</b>, <b>CPC</b> ou <b>Orçamento diário</b>. Sem nenhum desses dados não é possível gerar uma análise de performance.</div>
+      </div>
+    </div>`;
+    return;
+  }
+
+  // AVISOS: campos importantes ausentes (não bloqueia)
+  const warnings = [];
+  if (!produto) warnings.push('Nome do produto/serviço não informado — a análise será genérica');
+  if (!roas && !conv) warnings.push('ROAS e Taxa de conversão ausentes — não será possível avaliar rentabilidade');
+  if ((!ctr || !cpc) && !orcamento) warnings.push('Poucos dados numéricos — a análise pode ficar limitada');
+
+  if (warnings.length) {
+    const wrapEl = document.createElement('div');
+    wrapEl.id = 'analise-warnings';
+    wrapEl.style.cssText = 'background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.35);border-radius:12px;padding:14px 18px;margin-bottom:16px;';
+    wrapEl.innerHTML = `<div style="display:flex;align-items:flex-start;gap:10px">
+      <span style="font-size:20px;flex-shrink:0">⚠️</span>
+      <div>
+        <div style="font-weight:700;font-size:13px;color:var(--warn);margin-bottom:6px">A análise pode ficar comprometida</div>
+        <ul style="font-size:13px;color:var(--text2);line-height:1.8;padding-left:16px;margin:0">
+          ${warnings.map(w => `<li>${w}</li>`).join('')}
+        </ul>
+      </div>
+    </div>`;
+    btn.parentElement.insertBefore(wrapEl, btn.parentElement.firstChild);
+  }
+
   btn.disabled = true;
   btn.textContent = 'Analisando…';
 
@@ -1249,26 +1293,40 @@ async function runAnalysis() {
   resultEl.style.display = 'block';
   contentEl.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div> Gerando análise…';
 
-  const prompt = `Analise esta campanha de tráfego pago e forneça insights detalhados:
+  // Montar prompt apenas com campos preenchidos
+  const linhas = [];
+  if (g('a-produto'))    linhas.push(`- Produto/Serviço: ${g('a-produto')}`);
+  if (g('a-segmento'))   linhas.push(`- Segmento: ${g('a-segmento')}`);
+  if (g('a-plataforma')) linhas.push(`- Plataforma: ${g('a-plataforma')}`);
+  if (g('a-objetivo'))   linhas.push(`- Objetivo: ${g('a-objetivo')}`);
+  if (g('a-orcamento'))  linhas.push(`- Orçamento diário: R$${g('a-orcamento')}`);
+  if (g('a-ctr'))        linhas.push(`- CTR: ${g('a-ctr')}%`);
+  if (g('a-cpc'))        linhas.push(`- CPC: R$${g('a-cpc')}`);
+  if (g('a-conv'))       linhas.push(`- Taxa de conversão: ${g('a-conv')}%`);
+  if (g('a-roas'))       linhas.push(`- ROAS: ${g('a-roas')}`);
+  if (g('a-cpa'))        linhas.push(`- CPA/CPL: R$${g('a-cpa')}`);
+  if (g('a-imp'))        linhas.push(`- Impressões/dia: ${g('a-imp')}`);
+  if (g('a-idade'))      linhas.push(`- Faixa etária: ${g('a-idade')}`);
+  if (g('a-genero') && g('a-genero') !== 'Todos') linhas.push(`- Gênero: ${g('a-genero')}`);
+  if (g('a-local'))      linhas.push(`- Localização: ${g('a-local')}`);
+  if (g('a-publico'))    linhas.push(`- Tipo de público: ${g('a-publico')}`);
+  if (g('a-interesses')) linhas.push(`- Interesses: ${g('a-interesses')}`);
+  if (g('a-formato'))    linhas.push(`- Formato do criativo: ${g('a-formato')}`);
+  if (g('a-tom'))        linhas.push(`- Tom de voz: ${g('a-tom')}`);
+  if (g('a-hook'))       linhas.push(`- Hook atual: ${g('a-hook')}`);
+  if (g('a-problemas'))  linhas.push(`- Problemas identificados: ${g('a-problemas')}`);
+  if (g('a-extra'))      linhas.push(`- Contexto extra: ${g('a-extra')}`);
 
-DADOS:
-- Produto: ${g('a-produto')} | Segmento: ${g('a-segmento')}
-- Plataforma: ${g('a-plataforma')} | Objetivo: ${g('a-objetivo')}
-- Orçamento diário: R$${g('a-orcamento')}
+  const prompt = `Analise esta campanha de tráfego pago com base nos dados disponíveis:
 
-MÉTRICAS:
-- CTR: ${g('a-ctr')}% | CPC: R$${g('a-cpc')}
-- Taxa de conversão: ${g('a-conv')}% | ROAS: ${g('a-roas')}
-- CPA/CPL: R$${g('a-cpa')} | Impressões/dia: ${g('a-imp')}
+${linhas.join('\n')}
 
-PÚBLICO: ${g('a-idade')} | ${g('a-genero')} | ${g('a-local')} | ${g('a-publico')}
-Interesses: ${g('a-interesses')}
-
-CRIATIVO: ${g('a-formato')} | Tom: ${g('a-tom')}
-Hook atual: ${g('a-hook')}
-Problemas identificados: ${g('a-problemas')}
-
-Contexto extra: ${g('a-extra')}
+Instruções importantes:
+- Analise APENAS com os dados fornecidos acima
+- Se algum dado estiver ausente, ignore-o silenciosamente
+- Mencione brevemente apenas se a ausência de um dado específico limitar uma conclusão importante
+- Nunca peça para o usuário preencher campos
+- Seja direto e prático
 
 Forneça: 1) Diagnóstico geral 2) Pontos críticos 3) Recomendações prioritárias 4) Ações imediatas 5) Projeções se implementadas`;
 
@@ -2194,3 +2252,4 @@ window.addEventListener('load', () => {
 </script>
 </body>
 </html>
+
